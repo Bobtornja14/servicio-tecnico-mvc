@@ -1,0 +1,302 @@
+{% extends "pedidos_piezas/base.html" %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.list') }}">Pedidos de Piezas</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}">Pedido #{{ pedido.id }}</a>
+    </li>
+    <li class="breadcrumb-item active">Aprobar/Rechazar</li>
+{% endblock %}
+
+{% block page_title %}Aprobar/Rechazar Pedido #{{ pedido.id }}{% endblock %}
+
+{% block pedidos_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Detalles del Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Técnico:</th>
+                            <td>{{ pedido.tecnico.nombre }}</td>
+                        </tr>
+                        <tr>
+                            <th>Pieza Solicitada:</th>
+                            <td>
+                                <strong>{{ pedido.parte.nombre }}</strong><br>
+                                <small class="text-muted">{{ pedido.parte.codigo }}</small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Cantidad Solicitada:</th>
+                            <td>{{ pedido.cantidad_solicitada }}</td>
+                        </tr>
+                        <tr>
+                            <th>Stock Actual:</th>
+                            <td>
+                                {{ pedido.parte.stock }}
+                                <span class="badge bg-{{ 'danger' if pedido.parte.stock < pedido.cantidad_solicitada else 'success' }}">
+                                    {{ 'Stock insuficiente' if pedido.parte.stock < pedido.cantidad_solicitada else 'Stock suficiente' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Motivo:</th>
+                            <td>{{ pedido.motivo }}</td>
+                        </tr>
+                        <tr>
+                            <th>Urgencia:</th>
+                            <td>
+                                {% if pedido.urgencia == 'urgente' %}
+                                    <span class="badge bg-danger">Urgente</span>
+                                {% elif pedido.urgencia == 'alta' %}
+                                    <span class="badge bg-warning">Alta Prioridad</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ pedido.urgencia|title }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if pedido.asignacion %}
+                        <tr>
+                            <th>Asignación:</th>
+                            <td>
+                                <a href="{{ url_for('asignaciones.ver', id=pedido.asignacion.id) }}">
+                                    #{{ pedido.asignacion.id }} - {{ pedido.asignacion.solicitud.cliente.nombre }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                
+                <hr>
+                
+                <form method="POST" action="{{ url_for('pedidos_piezas.aprobar', id=pedido.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.estado.label(class="form-label") }}
+                                {{ form.estado(class="form-select") }}
+                                {% if form.estado.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.estado.errors[0] }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.cantidad_aprobada.label(class="form-label") }}
+                                <div class="input-group">
+                                    {{ form.cantidad_aprobada(class="form-control") }}
+                                    <span class="input-group-text">/ {{ pedido.cantidad_solicitada }} (solicitados)</span>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Stock disponible: {{ pedido.parte.stock }}
+                                </small>
+                                {% if form.cantidad_aprobada.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.cantidad_aprobada.errors[0] }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        {{ form.observaciones.label(class="form-label") }}
+                        {{ form.observaciones(class="form-control", rows=4) }}
+                        <small class="form-text text-muted">
+                            Esta información será visible para el técnico.
+                        </small>
+                        {% if form.observaciones.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.observaciones.errors[0] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Historial del Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-point timeline-point-primary">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="timeline-event">
+                            <div class="timeline-header">Pedido realizado</div>
+                            <div class="text-muted">
+                                {{ pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M') }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-point timeline-point-{{ 'primary' if pedido.estado != 'pendiente' else 'secondary' }}">
+                            <i class="fas {{ 'fa-check' if pedido.estado != 'pendiente' else 'fa-clock' }}"></i>
+                        </div>
+                        <div class="timeline-event">
+                            <div class="timeline-header">
+                                {% if pedido.estado == 'pendiente' %}
+                                    Pendiente de aprobación
+                                {% else %}
+                                    {{ 'Aprobado' if pedido.estado == 'aprobado' else 'Rechazado' }}
+                                {% endif %}
+                            </div>
+                            {% if pedido.estado != 'pendiente' %}
+                                <div class="text-muted">
+                                    {{ pedido.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') if pedido.fecha_aprobacion }}
+                                    {% if pedido.observaciones_admin %}
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            {{ pedido.observaciones_admin|nl2br }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-muted">Esperando revisión</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if pedido.estado == 'entregado' %}
+                    <div class="timeline-item">
+                        <div class="timeline-point timeline-point-success">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="timeline-event">
+                            <div class="timeline-header">Entregado</div>
+                            <div class="text-muted">
+                                {{ pedido.fecha_entrega.strftime('%d/%m/%Y %H:%M') if pedido.fecha_entrega }}
+                                {% if pedido.observaciones_entrega %}
+                                    <div class="mt-2 p-2 bg-light rounded">
+                                        {{ pedido.observaciones_entrega|nl2br }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Acciones Rápidas</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action" id="verStock">
+                    <i class="fas fa-boxes me-2"></i> Ver Stock de Piezas
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="verHistorialTecnico">
+                    <i class="fas fa-history me-2"></i> Historial del Técnico
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="contactarTecnico">
+                    <i class="fas fa-envelope me-2"></i> Contactar al Técnico
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Validar la cantidad aprobada
+document.addEventListener('DOMContentLoaded', function() {
+    const estadoSelect = document.getElementById('{{ form.estado.id }}');
+    const cantidadAprobadaInput = document.getElementById('{{ form.cantidad_aprobada.id }}');
+    const stockDisponible = {{ pedido.parte.stock }};
+    const cantidadSolicitada = {{ pedido.cantidad_solicitada }};
+    
+    // Establecer el valor máximo permitido
+    cantidadAprobadaInput.max = Math.min(stockDisponible, cantidadSolicitada);
+    
+    // Validar al cambiar el estado
+    estadoSelect.addEventListener('change', function() {
+        if (this.value === 'aprobado' && stockDisponible === 0) {
+            alert('No hay stock disponible para aprobar este pedido.');
+            this.value = 'rechazado';
+        }
+    });
+    
+    // Validar al enviar el formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const cantidadAprobada = parseInt(cantidadAprobadaInput.value);
+        
+        if (isNaN(cantidadAprobada) || cantidadAprobada < 0) {
+            e.preventDefault();
+            alert('La cantidad aprobada debe ser un número positivo.');
+            cantidadAprobadaInput.focus();
+            return false;
+        }
+        
+        if (estadoSelect.value === 'aprobado' && cantidadAprobada === 0) {
+            e.preventDefault();
+            alert('La cantidad aprobada debe ser mayor que cero.');
+            cantidadAprobadaInput.focus();
+            return false;
+        }
+        
+        if (cantidadAprobada > cantidadSolicitada) {
+            e.preventDefault();
+            alert('La cantidad aprobada no puede ser mayor a la solicitada.');
+            cantidadAprobadaInput.focus();
+            return false;
+        }
+        
+        if (estadoSelect.value === 'aprobado' && cantidadAprobada > stockDisponible) {
+            e.preventDefault();
+            alert('No hay suficiente stock disponible para la cantidad aprobada.');
+            cantidadAprobadaInput.focus();
+            return false;
+        }
+    });
+    
+    // Acciones rápidas
+    document.getElementById('verStock')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Implementar lógica para ver stock
+        alert('Función de ver stock en desarrollo');
+    });
+    
+    document.getElementById('verHistorialTecnico')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Implementar lógica para ver historial
+        alert('Función de ver historial en desarrollo');
+    });
+    
+    document.getElementById('contactarTecnico')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Implementar lógica para contactar
+        alert('Función de contacto en desarrollo');
+    });
+});
+</script>
+{% endblock %}

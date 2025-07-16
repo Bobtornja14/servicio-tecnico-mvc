@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Detalles del Técnico</h4>
+                <div>
+                    <a href="{{ url_for('tecnicos.edit', id=tecnico.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </a>
+                    <a href="{{ url_for('tecnicos.list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN PERSONAL</h6>
+                        <p><strong>Nombre:</strong> {{ tecnico.nombre }}</p>
+                        <p><strong>Email:</strong> {{ tecnico.email or 'No especificado' }}</p>
+                        <p><strong>Teléfono:</strong> {{ tecnico.telefono }}</p>
+                        <p><strong>Estado:</strong> 
+                            <span class="badge bg-{{ 'success' if tecnico.activo else 'secondary' }}">
+                                {{ 'Activo' if tecnico.activo else 'Inactivo' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN PROFESIONAL</h6>
+                        <p><strong>Especialidad:</strong> {{ tecnico.especialidad or 'No especificada' }}</p>
+                        <p><strong>Experiencia:</strong> 
+                            <span class="badge bg-{{ 'success' if tecnico.nivel_experiencia == 'experto' else 'info' if tecnico.nivel_experiencia == 'senior' else 'warning' }}">
+                                {{ tecnico.nivel_experiencia.title() }}
+                            </span>
+                        </p>
+                        <p><strong>Fecha de Ingreso:</strong> {{ tecnico.fecha_ingreso.strftime('%d/%m/%Y') }}</p>
+                        {% if tecnico.usuario %}
+                        <p><strong>Usuario Asociado:</strong> {{ tecnico.usuario.nombre }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Asignaciones del técnico -->
+                {% if tecnico.asignaciones %}
+                <hr>
+                <h6 class="text-muted">ASIGNACIONES RECIENTES ({{ tecnico.asignaciones|length }})</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asignacion in tecnico.asignaciones[:5] %}
+                            <tr>
+                                <td>#{{ asignacion.id }}</td>
+                                <td>{{ asignacion.solicitud.cliente.nombre }}</td>
+                                <td>{{ asignacion.solicitud.servicio.nombre }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'warning' if asignacion.estado == 'asignada' else 'info' if asignacion.estado == 'en_proceso' else 'success' }}">
+                                        {{ asignacion.estado.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ asignacion.fecha_asignacion.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if tecnico.asignaciones|length > 5 %}
+                    <small class="text-muted">Mostrando las últimas 5 asignaciones...</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

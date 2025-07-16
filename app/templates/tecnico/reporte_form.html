@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Crear Reporte de Trabajo</h4>
+                <small class="text-muted">Asignación #{{ asignacion.id }} - {{ asignacion.solicitud.cliente.nombre }}</small>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="reporteForm">
+                    {{ form.hidden_tag() }}
+
+                    <!-- Información del trabajo -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2 mb-3">Información del Trabajo</h5>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.estado_inicial.label(class="form-label") }}
+                                {{ form.estado_inicial(class="form-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.estado_final.label(class="form-label") }}
+                                {{ form.estado_final(class="form-select") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.hora_inicio.label(class="form-label") }}
+                                {{ form.hora_inicio(class="form-control", placeholder="09:00") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.hora_fin.label(class="form-label") }}
+                                {{ form.hora_fin(class="form-control", placeholder="17:30") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Descripción del trabajo -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2 mb-3">Descripción del Trabajo</h5>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.trabajo_realizado.label(class="form-label") }}
+                        {{ form.trabajo_realizado(class="form-control", rows="4", placeholder="Describa detalladamente el trabajo realizado...") }}
+                        {% if form.trabajo_realizado.errors %}
+                            <div class="text-danger">
+                                {% for error in form.trabajo_realizado.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.problemas_encontrados.label(class="form-label") }}
+                        {{ form.problemas_encontrados(class="form-control", rows="3", placeholder="Describa los problemas encontrados durante el trabajo...") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.solucion_aplicada.label(class="form-label") }}
+                        {{ form.solucion_aplicada(class="form-control", rows="3", placeholder="Describa la solución aplicada...") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.recomendaciones.label(class="form-label") }}
+                        {{ form.recomendaciones(class="form-control", rows="3", placeholder="Recomendaciones para el cliente...") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.piezas_utilizadas.label(class="form-label") }}
+                        {{ form.piezas_utilizadas(class="form-control", rows="3", placeholder="Liste las piezas utilizadas en el trabajo (código, cantidad, descripción)...") }}
+                        <small class="form-text text-muted">Ejemplo: PZ-001, 2, Cable HDMI 2m</small>
+                    </div>
+
+                    <!-- Información del cliente -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2 mb-3">Información del Cliente</h5>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.cliente_satisfecho(class="form-check-input") }}
+                            {{ form.cliente_satisfecho.label(class="form-check-label") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.observaciones_cliente.label(class="form-label") }}
+                        {{ form.observaciones_cliente(class="form-control", rows="3", placeholder="Comentarios adicionales del cliente...") }}
+                    </div>
+
+                    <!-- Firma del cliente -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2 mb-3">Firma del Cliente</h5>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Firma Digital</label>
+                        <div class="border rounded p-3">
+                            <canvas id="signatureCanvas" width="600" height="200" style="border: 1px dashed #ccc; width: 100%; max-width: 600px;"></canvas>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature()">
+                                    <i class="fas fa-eraser me-1"></i>Limpiar Firma
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="signatureData" name="firma_cliente">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre_firma" class="form-label">Nombre de quien firma</label>
+                        <input type="text" class="form-control" id="nombre_firma" name="nombre_firma"
+                               placeholder="Nombre completo de quien firma">
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('tecnico.mis_asignaciones') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Guardar Reporte
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuración del canvas para firma
+const canvas = document.getElementById('signatureCanvas');
+const ctx = canvas.getContext('2d');
+let isDrawing = false;
+
+// Configurar el canvas
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 2;
+ctx.lineCap = 'round';
+
+// Eventos del mouse
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
+
+// Eventos táctiles para dispositivos móviles
+canvas.addEventListener('touchstart', handleTouch);
+canvas.addEventListener('touchmove', handleTouch);
+canvas.addEventListener('touchend', stopDrawing);
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+}
+
+function stopDrawing() {
+    isDrawing = false;
+    // Guardar la firma como base64
+    document.getElementById('signatureData').value = canvas.toDataURL();
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' :
+                                     e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+}
+
+function clearSignature() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('signatureData').value = '';
+}
+
+// Función para guardar la firma
+async function guardarFirma() {
+    try {
+        const canvas = document.getElementById('signatureCanvas');
+        const firmaData = canvas.toDataURL('image/png');
+        const nombreCliente = document.getElementById('nombre_firma').value;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        if (!firmaData) {
+            alert('Por favor, proporcione una firma');
+            return false;
+        }
+
+        // Mostrar loading
+        const btnGuardar = document.getElementById('btnGuardarFirma');
+        const loadingText = document.createElement('span');
+        loadingText.className = 'spinner-border spinner-border-sm me-2';
+        loadingText.setAttribute('role', 'status');
+        loadingText.setAttribute('aria-hidden', 'true');
+        
+        const originalText = btnGuardar.innerHTML;
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '';
+        btnGuardar.appendChild(loadingText);
+        btnGuardar.appendChild(document.createTextNode(' Guardando...'));
+
+        // Enviar la firma al servidor con el token CSRF
+        const response = await fetch(`/tecnico/reporte/{{ asignacion.id }}/firmar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                firma: firmaData,
+                nombre_cliente: nombreCliente,
+                csrf_token: csrfToken
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success mt-3';
+            successAlert.textContent = 'Firma guardada correctamente';
+            document.getElementById('firmaContainer').appendChild(successAlert);
+            
+            // Ocultar el botón de guardar firma
+            btnGuardar.style.display = 'none';
+            
+            return true;
+        } else {
+            throw new Error(data.message || 'Error al guardar la firma');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar la firma. Por favor, intente nuevamente.');
+        return false;
+    }
+}
+
+// Función para validar el formulario antes de enviar
+function validarFormulario(e) {
+    // Validar horas
+    const horaInicio = document.querySelector('input[name="hora_inicio"]').value;
+    const horaFin = document.querySelector('input[name="hora_fin"]').value;
+    
+    if (horaInicio && horaFin) {
+        const [hIni, mIni] = horaInicio.split(':').map(Number);
+        const [hFin, mFin] = horaFin.split(':').map(Number);
+        
+        if (hIni > hFin || (hIni === hFin && mIni > mFin)) {
+            if (!confirm('La hora de finalización es anterior a la de inicio. ¿Desea continuar? (Se asumirá que finalizó al día siguiente)')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+    }
+    
+    // Validar firma solo si el cliente está marcado como satisfecho
+    const firma = document.getElementById('signatureData').value;
+    const nombreFirma = document.getElementById('nombre_firma').value.trim();
+    const clienteSatisfecho = document.querySelector('input[name="cliente_satisfecho"]').checked;
+    
+    if (clienteSatisfecho && (!firma || !nombreFirma)) {
+        alert('Por favor, complete la firma y el nombre para confirmar la satisfacción del cliente.');
+        e.preventDefault();
+        return false;
+    }
+    
+    return true;
+}
+
+// Manejar el envío del formulario
+document.getElementById('reporteForm').addEventListener('submit', async function(e) {
+    // Validar el formulario
+    if (!validarFormulario(e)) {
+        return false;
+    }
+    
+    // Mostrar loading
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...';
+    
+    try {
+        // Obtener los datos del formulario
+        const formData = new FormData(this);
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        // Agregar la firma si existe
+        const canvas = document.getElementById('signatureCanvas');
+        if (canvas && canvas.toDataURL) {
+            formData.set('firma_cliente', canvas.toDataURL('image/png'));
+        }
+        
+        // Enviar los datos del formulario
+        const response = await fetch(this.action || window.location.href, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+        
+        if (response.redirected) {
+            // Si el servidor redirige, seguir la redirección
+            window.location.href = response.url;
+        } else if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Error al guardar el reporte');
+        } else {
+            // Si la respuesta es exitosa pero no hay redirección
+            const data = await response.json();
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                window.location.reload();
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar el reporte: ' + error.message);
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+    
+    return false; // Prevenir el envío normal del formulario
+});
+</script>
+{% endblock %}

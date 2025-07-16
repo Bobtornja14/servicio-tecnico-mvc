@@ -1,0 +1,467 @@
+{% extends "pedidos_piezas/base.html" %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active">{% if current_user.is_admin() %}Todos los Pedidos{% else %}Mis Pedidos{% endif %}</li>
+{% endblock %}
+
+{% block page_title %}{% if current_user.is_admin() %}Gestión de Pedidos de Piezas{% else %}Mis Pedidos de Piezas{% endif %}{% endblock %}
+
+{% block pedidos_content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                {% if current_user.is_admin() %}
+                    <i class="fas fa-tools me-2"></i>Pedidos de Piezas
+                {% else %}
+                    <i class="fas fa-shopping-cart me-2"></i>Mis Pedidos
+                {% endif %}
+            </h5>
+            <div>
+                <a href="{{ url_for('pedidos_piezas.crear') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i> Nuevo Pedido
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <!-- Filtros de búsqueda -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterStatus">
+                    <option value="">Todos los estados</option>
+                    <option value="pendiente">Pendientes</option>
+                    <option value="aprobado">Aprobados</option>
+                    <option value="entregado">Entregados</option>
+                    <option value="rechazado">Rechazados</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterUrgencia">
+                    <option value="">Todas las urgencias</option>
+                    <option value="urgente">Urgente</option>
+                    <option value="alta">Alta prioridad</option>
+                    <option value="normal">Normal</option>
+                    <option value="baja">Baja</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <button id="btnFiltrar" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-filter me-1"></i> Filtrar
+                    </button>
+                    <button id="btnResetFiltros" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-undo-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {% if pedidos %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="tablaPedidos">
+                <thead class="table-light">
+                    <tr>
+                        <th># Pedido</th>
+                        <th>Fecha</th>
+                        {% if current_user.is_admin() %}
+                        <th>Técnico</th>
+                        {% endif %}
+                        <th>Pieza</th>
+                        <th class="text-center">Cantidad</th>
+                        <th>Estado</th>
+                        <th>Asignación</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td class="fw-bold">#{{ pedido.id }}</td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                <span>{{ pedido.fecha_pedido.strftime('%d/%m/%Y') }}</span>
+                                <small class="text-muted">{{ pedido.fecha_pedido.strftime('%H:%M') }}</small>
+                            </div>
+                        </td>
+                        
+                        {% if current_user.is_admin() %}
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-xs me-2">
+                                    <span class="avatar-title rounded-circle bg-primary text-white">
+                                        {{ pedido.tecnico.nombre[0]|upper }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ pedido.tecnico.nombre.split(' ')[0] }}</div>
+                                    <small class="text-muted">{{ pedido.tecnico.especialidad|default('Sin especialidad', true) }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        {% endif %}
+                        
+                        <td>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong class="d-block">{{ pedido.parte.nombre }}</strong>
+                                    <small class="text-muted">{{ pedido.parte.codigo }}</small>
+                                </div>
+                                {% if pedido.urgencia == 'alta' or pedido.urgencia == 'urgente' %}
+                                    <span class="badge ms-2 bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' }}" 
+                                          data-bs-toggle="tooltip" 
+                                          title="{{ 'Urgente' if pedido.urgencia == 'urgente' else 'Alta prioridad' }}">
+                                        <i class="fas fa-{{ 'exclamation-triangle' if pedido.urgencia == 'urgente' else 'exclamation-circle' }}"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <td class="text-center">
+                            <div class="d-flex flex-column">
+                                <span class="fw-medium">{{ pedido.cantidad_solicitada }}</span>
+                                {% if pedido.cantidad_aprobada and pedido.cantidad_aprobada != pedido.cantidad_solicitada %}
+                                    <small class="text-{{ 'danger' if pedido.cantidad_aprobada < pedido.cantidad_solicitada else 'success' }}">
+                                        ({{ pedido.cantidad_aprobada }} aprob.)
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="badge-dot bg-{{ 
+                                    'warning' if pedido.estado == 'pendiente' else 
+                                    'info' if pedido.estado == 'aprobado' else 
+                                    'success' if pedido.estado == 'entregado' else 
+                                    'danger' 
+                                }} me-2"></span>
+                                <span>{{ pedido.estado|title }}</span>
+                                
+                                {% if pedido.fecha_aprobacion and pedido.estado != 'pendiente' %}
+                                    <small class="ms-2 text-muted" data-bs-toggle="tooltip" 
+                                           title="Aprobado el {{ pedido.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') }}">
+                                        <i class="far fa-clock"></i>
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <td>
+                            {% if pedido.asignacion %}
+                                <a href="{{ url_for('asignaciones.ver', id=pedido.asignacion.id) }}" 
+                                   class="badge bg-light text-dark text-decoration-none"
+                                   data-bs-toggle="tooltip" 
+                                   title="Ver asignación #{{ pedido.asignacion.id }}">
+                                    #{{ pedido.asignacion.id }}
+                                </a>
+                                <div class="small text-muted">
+                                    {{ pedido.asignacion.solicitud.cliente.nombre|truncate(15, True) }}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">Sin asignación</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="text-end">
+                            <div class="dropdown
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                        type="button" 
+                                        id="dropdownMenuButton{{ pedido.id }}" 
+                                        data-bs-toggle="dropdown" 
+                                        aria-expanded="false">
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ pedido.id }}">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}">
+                                            <i class="fas fa-eye me-2"></i>Ver detalles
+                                        </a>
+                                    </li>
+                                    
+                                    {% if current_user.is_admin() and pedido.estado == 'pendiente' %}
+                                    <li>
+                                        <a class="dropdown-item text-success" 
+                                           href="{{ url_for('pedidos_piezas.aprobar', id=pedido.id) }}">
+                                            <i class="fas fa-check me-2"></i>Aprobar/Rechazar
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if current_user.is_admin() and pedido.estado == 'aprobado' %}
+                                    <li>
+                                        <a class="dropdown-item text-info" 
+                                           href="{{ url_for('pedidos_piezas.entregar', id=pedido.id) }}">
+                                            <i class="fas fa-truck me-2"></i>Registrar entrega
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if pedido.estado == 'pendiente' and pedido.tecnico.usuario_id == current_user.id %}
+                                    <li>
+                                        <a class="dropdown-item text-warning" href="#">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="return confirm('¿Estás seguro de cancelar este pedido?')">
+                                            <i class="fas fa-times me-2"></i>Cancelar
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if pedido.estado != 'entregado' and pedido.estado != 'rechazado' %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#comentarioModal" 
+                                           data-id="{{ pedido.id }}" data-tipo="pedido">
+                                            <i class="fas fa-comment me-2"></i>Agregar comentario
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            
+                            <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}" 
+                               class="btn btn-sm btn-outline-primary d-inline-block d-md-none mt-1 w-100">
+                                Ver detalles
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="fas fa-inbox fa-4x text-muted"></i>
+            </div>
+            <h4>No se encontraron pedidos</h4>
+            <p class="text-muted mb-4">
+                {% if request.args.get('estado') or request.args.get('urgencia') %}
+                    No hay pedidos que coincidan con los filtros actuales.
+                    <a href="{{ url_for('pedidos_piezas.list') }}" class="d-block mt-2">
+                        <i class="fas fa-undo-alt me-1"></i>Limpiar filtros
+                    </a>
+                {% else %}
+                    {{ 'No hay pedidos registrados en el sistema.' if current_user.is_admin() else 'Aún no has realizado ningún pedido.' }}
+                {% endif %}
+            </p>
+            <a href="{{ url_for('pedidos_piezas.crear') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Pedido
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Paginación -->
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Navegación de pedidos" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('pedidos_piezas.list', page=pagination.prev_num, **request.args) }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                {% endif %}
+                
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('pedidos_piezas.list', page=page, **request.args) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ page }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('pedidos_piezas.list', page=pagination.next_num, **request.args) }}" aria-label="Siguiente">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .badge-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+    .table-hover > tbody > tr {
+        transition: all 0.2s ease;
+    }
+    .table-hover > tbody > tr:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.05);
+    }
+    .avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .avatar-xs {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        font-size: 0.65rem !important;
+    }
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+    }
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+    .timeline-point {
+        position: absolute;
+        left: -1.5rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.5rem;
+    }
+    .timeline-event {
+        padding-left: 1rem;
+    }
+    .timeline-header {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Aplicar filtros al hacer clic en el botón
+    document.getElementById('btnFiltrar')?.addEventListener('click', function() {
+        const params = new URLSearchParams();
+        const estado = document.getElementById('filterStatus').value;
+        const urgencia = document.getElementById('filterUrgencia').value;
+        const busqueda = document.getElementById('searchInput').value.trim();
+        
+        if (estado) params.set('estado', estado);
+        if (urgencia) params.set('urgencia', urgencia);
+        if (busqueda) params.set('q', busqueda);
+        
+        window.location.href = '{{ url_for("pedidos_piezas.list") }}?' + params.toString();
+    });
+    
+    // Resetear filtros
+    document.getElementById('btnResetFiltros')?.addEventListener('click', function() {
+        window.location.href = '{{ url_for("pedidos_piezas.list") }}';
+    });
+    
+    // Aplicar filtro al presionar Enter en el campo de búsqueda
+    document.getElementById('searchInput')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('btnFiltrar').click();
+        }
+    });
+    
+    // Cargar valores de los filtros desde la URL
+    function cargarFiltrosDesdeURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.has('estado')) {
+            document.getElementById('filterStatus').value = urlParams.get('estado');
+        }
+        
+        if (urlParams.has('urgencia')) {
+            document.getElementById('filterUrgencia').value = urlParams.get('urgencia');
+        }
+        
+        if (urlParams.has('q')) {
+            document.getElementById('searchInput').value = urlParams.get('q');
+        }
+    }
+    
+    // Inicializar los filtros al cargar la página
+    cargarFiltrosDesdeURL();
+    
+    // Inicializar DataTables para búsqueda y ordenamiento
+    const tablaPedidos = document.getElementById('tablaPedidos');
+    if (tablaPedidos) {
+        new DataTable(tablaPedidos, {
+            pageLength: 25,
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            dom: '<"d-flex justify-content-between align-items-center mb-3"f<"ms-3"l>>rt<"d-flex justify-content-between align-items-center"ip>',
+            initComplete: function() {
+                // Mover el campo de búsqueda al contenedor personalizado
+                const searchInput = $('.dataTables_filter input');
+                const searchContainer = $('#searchInput').parent();
+                searchContainer.empty().append(searchInput);
+                searchInput.attr('placeholder', 'Buscar...');
+                
+                // Mover el selector de cantidad de registros mostrados
+                const lengthSelect = $('.dataTables_length select');
+                lengthSelect.addClass('form-select form-select-sm');
+                $('.dataTables_length label').addClass('d-flex align-items-center');
+                $('.dataTables_length').appendTo('.table-toolbar');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

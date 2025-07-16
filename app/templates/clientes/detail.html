@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Detalles del Cliente</h4>
+                <div>
+                    <a href="{{ url_for('clientes.edit', id=cliente.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </a>
+                    <a href="{{ url_for('clientes.list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN PERSONAL</h6>
+                        <p><strong>Nombre:</strong> {{ cliente.nombre }}</p>
+                        <p><strong>Email:</strong> {{ cliente.email or 'No especificado' }}</p>
+                        <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+                        <p><strong>Tipo:</strong> 
+                            <span class="badge bg-{{ 'primary' if cliente.tipo_cliente == 'empresa' else 'secondary' }}">
+                                {{ cliente.tipo_cliente.title() }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN ADICIONAL</h6>
+                        <p><strong>Estado:</strong> 
+                            <span class="badge bg-{{ 'success' if cliente.activo else 'secondary' }}">
+                                {{ 'Activo' if cliente.activo else 'Inactivo' }}
+                            </span>
+                        </p>
+                        <p><strong>Fecha de Registro:</strong> {{ cliente.fecha_registro.strftime('%d/%m/%Y') }}</p>
+                        {% if cliente.direccion %}
+                        <p><strong>Dirección:</strong><br>{{ cliente.direccion }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Solicitudes del cliente -->
+                {% if cliente.solicitudes %}
+                <hr>
+                <h6 class="text-muted">SOLICITUDES ({{ cliente.solicitudes|length }})</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for solicitud in cliente.solicitudes[:5] %}
+                            <tr>
+                                <td>#{{ solicitud.id }}</td>
+                                <td>{{ solicitud.servicio.nombre }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'warning' if solicitud.estado == 'pendiente' else 'info' if solicitud.estado == 'en_proceso' else 'success' }}">
+                                        {{ solicitud.estado.title() }}
+                                    </span>
+                                </td>
+                                <td>{{ solicitud.fecha_solicitud.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if cliente.solicitudes|length > 5 %}
+                    <small class="text-muted">Mostrando las últimas 5 solicitudes...</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

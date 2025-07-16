@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Pedidos de Piezas{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    /* Estilos personalizados para la sección de pedidos */
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.25rem;
+    }
+    
+    .card-title {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    .badge-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    
+    .avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        font-weight: 600;
+        color: white;
+        font-size: 0.875rem;
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+    
+    .timeline-point {
+        position: absolute;
+        left: -1.5rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.5rem;
+        z-index: 1;
+    }
+    
+    .timeline-event {
+        padding-left: 1rem;
+    }
+    
+    .table-actions {
+        white-space: nowrap;
+        width: 1%;
+    }
+    
+    /* Estilos para los badges de estado */
+    .badge-estado {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+    }
+    
+    /* Mejoras en la responsividad */
+    @media (max-width: 768px) {
+        .btn-group-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .btn-group-actions .btn {
+            width: 100%;
+            margin: 0;
+        }
+        
+        .table-responsive {
+            border: none;
+        }
+    }
+    
+    /* Estilos para el formulario de búsqueda */
+    .search-box {
+        position: relative;
+    }
+    
+    .search-box .form-control {
+        padding-left: 2.5rem;
+    }
+    
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    /* Estilos para los filtros */
+    .filter-section {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Mejoras en las tarjetas de resumen */
+    .summary-card {
+        border-left: 4px solid #0d6efd;
+        transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-card .card-body {
+        padding: 1.25rem;
+    }
+    
+    .summary-card .icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: #0d6efd;
+    }
+    
+    /* Estilos para los botones de acción */
+    .btn-action {
+        width: 2rem;
+        height: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-light p-2 rounded">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('main.index') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-1"></i> Inicio
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('pedidos_piezas.list') }}" class="text-decoration-none">
+                            <i class="fas fa-tools me-1"></i> Pedidos de Piezas
+                        </a>
+                    </li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+            
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <div class="mb-3 mb-md-0">
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-tools me-2 text-primary"></i>{% block page_title %}Pedidos de Piezas{% endblock %}
+                    </h2>
+                    <p class="text-muted mb-0 small d-none d-md-block">
+                        {% block page_subtitle %}
+                            Gestión de solicitudes de piezas y repuestos
+                        {% endblock %}
+                    </p>
+                </div>
+                
+                <div class="d-flex flex-wrap gap-2">
+                    {% if current_user.is_admin() %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                    id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-filter me-1"></i> Filtros
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 300px;">
+                                <li>
+                                    <label for="filterEstado" class="form-label small mb-1">Estado</label>
+                                    <select class="form-select form-select-sm mb-2" id="filterEstado">
+                                        <option value="">Todos los estados</option>
+                                        <option value="pendiente">Pendientes</option>
+                                        <option value="aprobado">Aprobados</option>
+                                        <option value="entregado">Entregados</option>
+                                        <option value="rechazado">Rechazados</option>
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="filterUrgencia" class="form-label small mb-1">Urgencia</label>
+                                    <select class="form-select form-select-sm mb-2" id="filterUrgencia">
+                                        <option value="">Todas las urgencias</option>
+                                        <option value="urgente">Urgente</option>
+                                        <option value="alta">Alta prioridad</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="baja">Baja</option>
+                                    </select>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-sm btn-outline-secondary" id="resetFilters">
+                                            <i class="fas fa-undo-alt me-1"></i> Reiniciar
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" id="applyFilters">
+                                            <i class="fas fa-check me-1"></i> Aplicar
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" 
+                                    id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cog me-1"></i> Acciones
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('pedidos_piezas.pendientes') }}">
+                                        <i class="fas fa-clock text-warning me-2"></i> Pendientes
+                                        {% if pendientes_count > 0 %}
+                                            <span class="badge bg-danger rounded-pill ms-2">{{ pendientes_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('pedidos_piezas.entregados') }}">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Entregados
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('pedidos_piezas.crear') }}">
+                                        <i class="fas fa-plus-circle text-primary me-2"></i> Nuevo Pedido
+                                    </a>
+                                </li>
+                                {% if current_user.is_admin() %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('pedidos_piezas.exportar') }}">
+                                        <i class="fas fa-file-export text-info me-2"></i> Exportar a Excel
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('pedidos_piezas.crear') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Nuevo Pedido
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Mensajes flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    <div class="d-flex align-items-center">
+                                        {% if category == 'success' %}
+                                            <i class="fas fa-check-circle me-2"></i>
+                                        {% elif category == 'danger' %}
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                        {% elif category == 'info' %}
+                                            <i class="fas fa-info-circle me-2"></i>
+                                        {% endif %}
+                                        <div>{{ message }}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Contenido principal -->
+            {% block pedidos_content %}{% endblock %}
+            
+            <!-- Modal para confirmaciones -->
+            <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title" id="confirmModalLabel">Confirmar acción</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="confirmMessage">¿Estás seguro de realizar esta acción?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </button>
+                            <button type="button" class="btn btn-danger" id="confirmActionBtn">
+                                <i class="fas fa-check me-1"></i> Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/es.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Inicializar Select2 para los selectores
+    $('.select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        language: 'es',
+        placeholder: 'Seleccione una opción',
+        allowClear: true
+    });
+    
+    // Manejar el modal de confirmación
+    const confirmModal = document.getElementById('confirmModal');
+    if (confirmModal) {
+        const modal = new bootstrap.Modal(confirmModal);
+        let confirmCallback = null;
+        
+        document.getElementById('confirmActionBtn').addEventListener('click', function() {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            modal.hide();
+        });
+        
+        // Función global para mostrar el modal de confirmación
+        window.showConfirmModal = function(message, callback) {
+            document.getElementById('confirmMessage').textContent = message;
+            confirmCallback = callback;
+            modal.show();
+        };
+    }
+    
+    // Manejar filtros
+    const filterEstado = document.getElementById('filterEstado');
+    const filterUrgencia = document.getElementById('filterUrgencia');
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    
+    function applyFilters() {
+        const params = new URLSearchParams();
+        
+        if (filterEstado && filterEstado.value) {
+            params.set('estado', filterEstado.value);
+        }
+        
+        if (filterUrgencia && filterUrgencia.value) {
+            params.set('urgencia', filterUrgencia.value);
+        }
+        
+        // Mantener otros parámetros de la URL
+        const currentParams = new URLSearchParams(window.location.search);
+        ['page', 'per_page', 'sort', 'direction'].forEach(param => {
+            if (currentParams.has(param)) {
+                params.set(param, currentParams.get(param));
+            }
+        });
+        
+        window.location.href = window.location.pathname + '?' + params.toString();
+    }
+    
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', applyFilters);
+    }
+    
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            if (filterEstado) filterEstado.value = '';
+            if (filterUrgencia) filterUrgencia.value = '';
+            window.location.href = window.location.pathname;
+        });
+    }
+    
+    // Cargar valores de los filtros desde la URL
+    function loadFiltersFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (filterEstado && urlParams.has('estado')) {
+            filterEstado.value = urlParams.get('estado');
+        }
+        
+        if (filterUrgencia && urlParams.has('urgencia')) {
+            filterUrgencia.value = urlParams.get('urgencia');
+        }
+    }
+    
+    // Inicializar los filtros al cargar la página
+    loadFiltersFromURL();
+    
+    // Función para formatear fechas
+    window.formatDate = function(dateString) {
+        if (!dateString) return '';
+        
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+    };
+    
+    // Función para formatear moneda
+    window.formatCurrency = function(amount) {
+        if (amount === null || amount === undefined) return '';
+        return new Intl.NumberFormat('es-AR', { 
+            style: 'currency', 
+            currency: 'ARS',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    };
+    
+    // Inicializar elementos con data-bs-toggle="tooltip" dinámicamente
+    function initTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+    
+    // Reiniciar tooltips cuando se muestre un modal (para tooltips dentro de modales)
+    document.querySelectorAll('.modal').forEach(modalEl => {
+        modalEl.addEventListener('shown.bs.modal', function () {
+            initTooltips();
+        });
+    });
+    
+    // Inicializar tooltips al cargar la página
+    initTooltips();
+});
+</script>
+
+<!-- Scripts específicos de la página -->
+{% block page_scripts %}{% endblock %}
+{% endblock %}

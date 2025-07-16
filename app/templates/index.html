@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <h1 class="display-4">Sistema de Servicio Técnico</h1>
+                <p class="lead">Gestión integral de servicios técnicos, clientes y asignaciones</p>
+                <hr class="my-4">
+                <p>Bienvenido al sistema de gestión de servicios técnicos. Aquí puedes administrar clientes, servicios, técnicos y asignaciones de manera eficiente.</p>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Clientes</h5>
+                    <p class="card-text">Gestionar información de clientes</p>
+                    <a href="{{ url_for('clientes.list') }}" class="btn btn-primary">Ver Clientes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-cogs fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Servicios</h5>
+                    <p class="card-text">Catálogo de servicios disponibles</p>
+                    <a href="{{ url_for('servicios.list') }}" class="btn btn-success">Ver Servicios</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-user-cog fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Técnicos</h5>
+                    <p class="card-text">Personal técnico disponible</p>
+                    <a href="{{ url_for('tecnicos.list') }}" class="btn btn-info">Ver Técnicos</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-tasks fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Solicitudes</h5>
+                    <p class="card-text">Gestión de solicitudes de servicio</p>
+                    <a href="{{ url_for('solicitudes.list') }}" class="btn btn-warning">Ver Solicitudes</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_admin() %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Panel de Administración</h3>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users-cog fa-3x text-danger mb-3"></i>
+                    <h5 class="card-title">Usuarios</h5>
+                    <p class="card-text">Gestión de usuarios del sistema</p>
+                    <a href="{{ url_for('usuarios.list') }}" class="btn btn-danger">Gestionar Usuarios</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clipboard-list fa-3x text-secondary mb-3"></i>
+                    <h5 class="card-title">Asignaciones</h5>
+                    <p class="card-text">Asignación de técnicos a solicitudes</p>
+                    <a href="{{ url_for('asignaciones.list') }}" class="btn btn-secondary">Ver Asignaciones</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-file-invoice fa-3x text-dark mb-3"></i>
+                    <h5 class="card-title">Facturas</h5>
+                    <p class="card-text">Gestión de facturación</p>
+                    <a href="{{ url_for('facturas.list') }}" class="btn btn-dark">Ver Facturas</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% elif current_user.is_tecnico() %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Panel de Técnico</h3>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clipboard-list fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Mis Asignaciones</h5>
+                    <p class="card-text">Ver trabajos asignados</p>
+                    <a href="{{ url_for('tecnico.mis_asignaciones') }}" class="btn btn-info">Ver Asignaciones</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-boxes fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Inventario</h5>
+                    <p class="card-text">Consultar piezas disponibles</p>
+                    <a href="{{ url_for('tecnico.inventario') }}" class="btn btn-success">Ver Inventario</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="row">
+        <div class="col-12 text-center">
+            <h3>Bienvenido al Sistema de Servicio Técnico</h3>
+            <p class="lead">Por favor, inicia sesión para acceder al sistema</p>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Iniciar Sesión</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

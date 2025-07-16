@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Factura {{ factura.numero_factura }}</h4>
+                <div>
+                    <a href="{{ url_for('facturas.edit', id=factura.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-edit me-1"></i>Editar
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-print me-1"></i>Imprimir
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN DEL CLIENTE</h6>
+                        <p class="mb-1"><strong>{{ factura.cliente.nombre }}</strong></p>
+                        {% if factura.cliente.email %}
+                        <p class="mb-1">{{ factura.cliente.email }}</p>
+                        {% endif %}
+                        <p class="mb-1">{{ factura.cliente.telefono }}</p>
+                        {% if factura.cliente.direccion %}
+                        <p class="mb-0">{{ factura.cliente.direccion }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <h6 class="text-muted">DETALLES DE LA FACTURA</h6>
+                        <p class="mb-1"><strong>Número:</strong> {{ factura.numero_factura }}</p>
+                        <p class="mb-1"><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%d/%m/%Y') }}</p>
+                        <p class="mb-1">
+                            <strong>Estado:</strong> 
+                            <span class="badge bg-{{ 'success' if factura.estado == 'pagada' else 'warning' if factura.estado == 'pendiente' else 'danger' }}">
+                                {{ factura.estado.title() }}
+                            </span>
+                        </p>
+                        {% if factura.solicitud %}
+                        <p class="mb-0"><strong>Solicitud:</strong> #{{ factura.solicitud.id }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if factura.solicitud %}
+                <div class="mb-4">
+                    <h6 class="text-muted">SERVICIO PRESTADO</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Servicio</th>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Precio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ factura.solicitud.servicio.nombre }}</td>
+                                    <td>{{ factura.solicitud.descripcion_problema[:100] }}...</td>
+                                    <td class="text-end">${{ "{:,.0f}".format(factura.solicitud.servicio.precio_base) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if factura.observaciones %}
+                        <h6 class="text-muted">OBSERVACIONES</h6>
+                        <p>{{ factura.observaciones }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Subtotal:</strong></td>
+                                    <td class="text-end">${{ "{:,.0f}".format(factura.subtotal) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Impuestos:</strong></td>
+                                    <td class="text-end">${{ "{:,.0f}".format(factura.impuestos) }}</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td><strong>TOTAL:</strong></td>
+                                    <td class="text-end"><strong>${{ "{:,.0f}".format(factura.total) }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('facturas.list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver a Facturas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

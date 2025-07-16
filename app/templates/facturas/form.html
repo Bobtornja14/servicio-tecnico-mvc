@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.numero_factura.label(class="form-label") }}
+                                {{ form.numero_factura(class="form-control" + (" is-invalid" if form.numero_factura.errors else "")) }}
+                                {% if form.numero_factura.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.numero_factura.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.cliente_id.label(class="form-label") }}
+                                {{ form.cliente_id(class="form-select" + (" is-invalid" if form.cliente_id.errors else "")) }}
+                                {% if form.cliente_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.cliente_id.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.solicitud_id.label(class="form-label") }}
+                        {{ form.solicitud_id(class="form-select") }}
+                        <div class="form-text">Opcional - Vincular con una solicitud específica</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.subtotal.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.subtotal(class="form-control" + (" is-invalid" if form.subtotal.errors else ""), id="subtotal") }}
+                                </div>
+                                {% if form.subtotal.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.subtotal.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.impuestos.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.impuestos(class="form-control", id="impuestos") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.total.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    {{ form.total(class="form-control" + (" is-invalid" if form.total.errors else ""), id="total", readonly=true) }}
+                                </div>
+                                {% if form.total.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.total.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.estado.label(class="form-label") }}
+                        {{ form.estado(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.observaciones.label(class="form-label") }}
+                        {{ form.observaciones(class="form-control", rows="3") }}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('facturas.list') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Calcular total automáticamente
+document.addEventListener('DOMContentLoaded', function() {
+    const subtotalInput = document.getElementById('subtotal');
+    const impuestosInput = document.getElementById('impuestos');
+    const totalInput = document.getElementById('total');
+    
+    function calcularTotal() {
+        const subtotal = parseFloat(subtotalInput.value) || 0;
+        const impuestos = parseFloat(impuestosInput.value) || 0;
+        const total = subtotal + impuestos;
+        totalInput.value = total.toFixed(2);
+    }
+    
+    subtotalInput.addEventListener('input', calcularTotal);
+    impuestosInput.addEventListener('input', calcularTotal);
+    
+    // Calcular al cargar la página
+    calcularTotal();
+});
+</script>
+{% endblock %}

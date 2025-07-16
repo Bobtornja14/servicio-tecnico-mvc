@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gestión de Clientes</h2>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('clientes.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nuevo Cliente
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if clientes.items %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Tipo</th>
+                        <th>Fecha Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes.items %}
+                    <tr>
+                        <td>{{ cliente.id }}</td>
+                        <td>{{ cliente.nombre }}</td>
+                        <td>{{ cliente.email or '-' }}</td>
+                        <td>{{ cliente.telefono }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'primary' if cliente.tipo_cliente == 'empresa' else 'secondary' }}">
+                                {{ cliente.tipo_cliente.title() }}
+                            </span>
+                        </td>
+                        <td>{{ cliente.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('clientes.detail', id=cliente.id) }}"
+                                   class="btn btn-sm btn-outline-info" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if current_user.is_admin() %}
+                                <a href="{{ url_for('clientes.edit', id=cliente.id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <form method="POST" action="{{ url_for('clientes.delete', id=cliente.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Eliminar"
+                                            onclick="return confirm('¿Está seguro de eliminar este cliente? Esta acción no se puede deshacer.')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay clientes registrados</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

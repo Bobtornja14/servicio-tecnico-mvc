@@ -1,0 +1,293 @@
+{% extends "pedidos_piezas/base.html" %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.list') }}">
+            {% if current_user.is_admin() %}Todos los Pedidos{% else %}Mis Pedidos{% endif %}
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Pedido #{{ pedido.id }}</li>
+{% endblock %}
+
+{% block page_title %}Pedido #{{ pedido.id }}{% endblock %}
+
+{% block pedidos_content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Detalles del Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>N° Pedido:</th>
+                                <td>#{{ pedido.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha:</th>
+                                <td>{{ pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <th>Estado:</th>
+                                <td>
+                                    {% if pedido.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">Pendiente de Aprobación</span>
+                                    {% elif pedido.estado == 'aprobado' %}
+                                        <span class="badge bg-info">Aprobado</span>
+                                    {% elif pedido.estado == 'entregado' %}
+                                        <span class="badge bg-success">Entregado</span>
+                                    {% elif pedido.estado == 'rechazado' %}
+                                        <span class="badge bg-danger">Rechazado</span>
+                                    {% endif %}
+                                    
+                                    {% if pedido.urgencia == 'alta' or pedido.urgencia == 'urgente' %}
+                                        <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' }} ms-1">
+                                            {{ 'Urgente' if pedido.urgencia == 'urgente' else 'Alta prioridad' }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if pedido.asignacion %}
+                            <tr>
+                                <th>Asignación:</th>
+                                <td>
+                                    <a href="{{ url_for('asignaciones.ver', id=pedido.asignacion.id) }}">
+                                        #{{ pedido.asignacion.id }} - {{ pedido.asignacion.solicitud.cliente.nombre }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Detalles de la Pieza</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Pieza:</th>
+                                <td>{{ pedido.parte.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <th>Código:</th>
+                                <td>{{ pedido.parte.codigo }}</td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad Solicitada:</th>
+                                <td>{{ pedido.cantidad_solicitada }}</td>
+                            </tr>
+                            {% if pedido.cantidad_aprobada is not none %}
+                            <tr>
+                                <th>Cantidad Aprobada:</th>
+                                <td>
+                                    {{ pedido.cantidad_aprobada }}
+                                    {% if pedido.cantidad_aprobada < pedido.cantidad_solicitada %}
+                                        <span class="text-warning ms-2">
+                                            <i class="fas fa-info-circle"></i> Aprobación parcial
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if pedido.estado == 'entregado' %}
+                            <tr>
+                                <th>Fecha de Entrega:</th>
+                                <td>{{ pedido.fecha_entrega.strftime('%d/%m/%Y %H:%M') }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Motivo del Pedido</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ pedido.motivo|nl2br }}
+                    </div>
+                </div>
+                
+                {% if pedido.observaciones_admin %}
+                <div class="mb-3">
+                    <h6>Observaciones del Administrador</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ pedido.observaciones_admin|nl2br }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if pedido.observaciones_entrega %}
+                <div class="mb-3">
+                    <h6>Notas de Entrega</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ pedido.observaciones_entrega|nl2br }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('pedidos_piezas.list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                    
+                    <div>
+                        {% if current_user.is_admin() and pedido.estado == 'pendiente' %}
+                            <a href="{{ url_for('pedidos_piezas.aprobar', id=pedido.id) }}" class="btn btn-success">
+                                <i class="fas fa-check me-1"></i> Aprobar/Rechazar
+                            </a>
+                        {% endif %}
+                        
+                        {% if current_user.is_admin() and pedido.estado == 'aprobado' %}
+                            <a href="{{ url_for('pedidos_piezas.entregar', id=pedido.id) }}" class="btn btn-info text-white">
+                                <i class="fas fa-truck me-1"></i> Registrar Entrega
+                            </a>
+                        {% endif %}
+                        
+                        {% if current_user.id == pedido.tecnico.usuario_id and pedido.estado == 'pendiente' %}
+                            <a href="#" class="btn btn-warning text-white" id="editarPedido">
+                                <i class="fas fa-edit me-1"></i> Editar
+                            </a>
+                            <a href="#" class="btn btn-danger" id="cancelarPedido">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Información del Técnico</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar avatar-lg me-3">
+                        <span class="avatar-title rounded-circle bg-primary text-white">
+                            {{ pedido.tecnico.nombre[0]|upper }}
+                        </span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ pedido.tecnico.nombre }}</h6>
+                        <small class="text-muted">{{ pedido.tecnico.email or 'Sin correo' }}</small>
+                    </div>
+                </div>
+                
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-phone me-2 text-muted"></i> Teléfono</span>
+                        <span>{{ pedido.tecnico.telefono or 'No especificado' }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-briefcase me-2 text-muted"></i> Especialidad</span>
+                        <span>{{ pedido.tecnico.especialidad or 'No especificada' }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-star me-2 text-muted"></i> Nivel</span>
+                        <span class="text-capitalize">{{ pedido.tecnico.nivel_experiencia or 'No especificado' }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('tecnicos.ver', id=pedido.tecnico.id) }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-user me-1"></i> Ver Perfil
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% if pedido.asignacion %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Información de la Asignación</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">
+                    <a href="{{ url_for('solicitudes.ver', id=pedido.asignacion.solicitud.id) }}">
+                        Solicitud #{{ pedido.asignacion.solicitud.id }}
+                    </a>
+                </h6>
+                <p class="card-text">
+                    <strong>Cliente:</strong> 
+                    <a href="{{ url_for('clientes.ver', id=pedido.asignacion.solicitud.cliente.id) }}">
+                        {{ pedido.asignacion.solicitud.cliente.nombre }}
+                    </a>
+                </p>
+                <p class="card-text">
+                    <strong>Servicio:</strong> {{ pedido.asignacion.solicitud.servicio.nombre }}
+                </p>
+                <p class="card-text">
+                    <strong>Estado:</strong> 
+                    <span class="badge bg-{{ 'success' if pedido.asignacion.estado == 'completada' else 'warning' }}">
+                        {{ pedido.asignacion.estado|title }}
+                    </span>
+                </p>
+                <a href="{{ url_for('asignaciones.ver', id=pedido.asignacion.id) }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="fas fa-tasks me-1"></i> Ver Asignación
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Manejar la edición del pedido
+        const editarBtn = document.getElementById('editarPedido');
+        if (editarBtn) {
+            editarBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Implementar lógica de edición
+                window.location.href = '{{ url_for("pedidos_piezas.editar", id=pedido.id) }}';
+            });
+        }
+
+        // Manejar la cancelación del pedido
+        const cancelarBtn = document.getElementById('cancelarPedido');
+        if (cancelarBtn) {
+            cancelarBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (confirm('¿Está seguro de cancelar este pedido? Esta acción no se puede deshacer.')) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ url_for("pedidos_piezas.cancelar", id=pedido.id) }}';
+                    
+                    // Agregar token CSRF
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = 'csrf_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+        
+        // Inicializar elementos dinámicos
+        if (typeof initTooltips === 'function') {
+            initTooltips();
+        }
+    } catch (error) {
+        console.error('Error al inicializar la página de visualización de pedido:', error);
+    }
+});
+</script>
+{% endblock %}

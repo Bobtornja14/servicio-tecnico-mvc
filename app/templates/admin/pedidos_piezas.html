@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Pedidos de Piezas - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Gestión de Pedidos de Piezas</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item active" aria-current="page">Pedidos de Piezas</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+        </div>
+        <div class="card-body">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin.gestionar_pedidos', estado='todos') }}" 
+                   class="btn btn-outline-primary {{ 'active' if estado_actual == 'todos' else '' }}">
+                    Todos
+                </a>
+                <a href="{{ url_for('admin.gestionar_pedidos', estado='pendientes') }}" 
+                   class="btn btn-outline-warning {{ 'active' if estado_actual == 'pendientes' else '' }}">
+                    Pendientes
+                </a>
+                <a href="{{ url_for('admin.gestionar_pedidos', estado='aprobados') }}" 
+                   class="btn btn-outline-success {{ 'active' if estado_actual == 'aprobados' else '' }}">
+                    Aprobados
+                </a>
+                <a href="{{ url_for('admin.gestionar_pedidos', estado='entregados') }}" 
+                   class="btn btn-outline-info {{ 'active' if estado_actual == 'entregados' else '' }}">
+                    Entregados
+                </a>
+                <a href="{{ url_for('admin.gestionar_pedidos', estado='rechazados') }}" 
+                   class="btn btn-outline-danger {{ 'active' if estado_actual == 'rechazados' else '' }}">
+                    Rechazados
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de pedidos -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Lista de Pedidos</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Técnico</th>
+                            <th>Pieza</th>
+                            <th>Solicitado</th>
+                            <th>Aprobado</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos.items %}
+                        <tr>
+                            <td>#{{ pedido.id }}</td>
+                            <td>{{ pedido.tecnico.nombre }}</td>
+                            <td>
+                                {{ pedido.parte.nombre }}
+                                <small class="d-block text-muted">Código: {{ pedido.parte.codigo }}</small>
+                            </td>
+                            <td>{{ pedido.cantidad_solicitada }}</td>
+                            <td>
+                                {% if pedido.cantidad_aprobada %}
+                                    {{ pedido.cantidad_aprobada }}
+                                {% else %}
+                                    <span class="text-muted">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pedido.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif pedido.estado == 'aprobado' %}
+                                    <span class="badge bg-success">Aprobado</span>
+                                {% elif pedido.estado == 'entregado' %}
+                                    <span class="badge bg-info">Entregado</span>
+                                {% elif pedido.estado == 'rechazado' %}
+                                    <span class="badge bg-danger">Rechazado</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" 
+                                            data-bs-target="#detallePedido{{ pedido.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    {% if pedido.estado == 'pendiente' %}
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" 
+                                                data-bs-target="#aprobarPedido{{ pedido.id }}">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" 
+                                                data-bs-target="#rechazarPedido{{ pedido.id }}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% elif pedido.estado == 'aprobado' %}
+                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" 
+                                                data-bs-target="#entregarPedido{{ pedido.id }}">
+                                            <i class="fas fa-truck"></i> Entregar
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Modal Detalles -->
+                        <div class="modal fade" id="detallePedido{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Detalles del Pedido #{{ pedido.id }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <h6>Información del Pedido</h6>
+                                                <p><strong>Fecha:</strong> {{ pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M') }}</p>
+                                                <p><strong>Estado:</strong> 
+                                                    {% if pedido.estado == 'pendiente' %}
+                                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                                    {% elif pedido.estado == 'aprobado' %}
+                                                        <span class="badge bg-success">Aprobado</span>
+                                                    {% elif pedido.estado == 'entregado' %}
+                                                        <span class="badge bg-info">Entregado</span>
+                                                    {% elif pedido.estado == 'rechazado' %}
+                                                        <span class="badge bg-danger">Rechazado</span>
+                                                    {% endif %}
+                                                </p>
+                                                {% if pedido.fecha_aprobacion %}
+                                                    <p><strong>Fecha de Aprobación:</strong> {{ pedido.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') }}</p>
+                                                {% endif %}
+                                                {% if pedido.fecha_entrega %}
+                                                    <p><strong>Fecha de Entrega:</strong> {{ pedido.fecha_entrega.strftime('%d/%m/%Y %H:%M') }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Información del Técnico</h6>
+                                                <p><strong>Nombre:</strong> {{ pedido.tecnico.nombre }}</p>
+                                                <p><strong>Email:</strong> {{ pedido.tecnico.email }}</p>
+                                                <p><strong>Teléfono:</strong> {{ pedido.tecnico.telefono or 'No especificado' }}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <h6>Detalles de la Pieza</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Código</th>
+                                                                <th>Nombre</th>
+                                                                <th>Cant. Solicitada</th>
+                                                                <th>Cant. Aprobada</th>
+                                                                <th>Stock Actual</th>
+                                                                <th>Precio Unitario</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>{{ pedido.parte.codigo }}</td>
+                                                                <td>{{ pedido.parte.nombre }}</td>
+                                                                <td>{{ pedido.cantidad_solicitada }}</td>
+                                                                <td>{{ pedido.cantidad_aprobada or '-' }}</td>
+                                                                <td>{{ pedido.parte.stock }}</td>
+                                                                <td>${{ "%.2f"|format(pedido.parte.precio) if pedido.parte.precio else 'N/A' }}</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Motivo de la Solicitud</h6>
+                                                <p>{{ pedido.motivo or 'No especificado' }}</p>
+                                                
+                                                {% if pedido.asignacion_id %}
+                                                    <h6 class="mt-3">Asignación Relacionada</h6>
+                                                    <p>ID: {{ pedido.asignacion_id }} - {{ pedido.asignacion.descripcion|truncate(50) }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                {% if pedido.observaciones_admin %}
+                                                    <h6>Observaciones del Administrador</h6>
+                                                    <p>{{ pedido.observaciones_admin }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Aprobar -->
+                        {% if pedido.estado == 'pendiente' %}
+                        <div class="modal fade" id="aprobarPedido{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin.aprobar_pedido', id=pedido.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Aprobar Pedido #{{ pedido.id }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Está a punto de aprobar la siguiente solicitud:</p>
+                                            <ul>
+                                                <li><strong>Técnico:</strong> {{ pedido.tecnico.nombre }}</li>
+                                                <li><strong>Pieza:</strong> {{ pedido.parte.nombre }}</li>
+                                                <li><strong>Solicitado:</strong> {{ pedido.cantidad_solicitada }}</li>
+                                                <li><strong>Stock disponible:</strong> {{ pedido.parte.stock }}</li>
+                                            </ul>
+                                            
+                                            <div class="mb-3">
+                                                <label for="cantidad_aprobada{{ pedido.id }}" class="form-label">
+                                                    Cantidad a aprobar (máx. {{ [pedido.parte.stock, pedido.cantidad_solicitada]|min }})
+                                                </label>
+                                                <input type="number" class="form-control" id="cantidad_aprobada{{ pedido.id }}" 
+                                                       name="cantidad_aprobada" 
+                                                       min="1" 
+                                                       max="{{ [pedido.parte.stock, pedido.cantidad_solicitada]|min }}" 
+                                                       value="{{ [pedido.parte.stock, pedido.cantidad_solicitada]|min }}" required>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="observaciones{{ pedido.id }}" class="form-label">Observaciones (opcional)</label>
+                                                <textarea class="form-control" id="observaciones{{ pedido.id }}" 
+                                                          name="observaciones" rows="3"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-success">Aprobar Pedido</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Rechazar -->
+                        <div class="modal fade" id="rechazarPedido{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin.rechazar_pedido', id=pedido.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">Rechazar Pedido #{{ pedido.id }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Está seguro de rechazar este pedido?</p>
+                                            <ul>
+                                                <li><strong>Técnico:</strong> {{ pedido.tecnico.nombre }}</li>
+                                                <li><strong>Pieza:</strong> {{ pedido.parte.nombre }}</li>
+                                                <li><strong>Cantidad:</strong> {{ pedido.cantidad_solicitada }}</li>
+                                            </ul>
+                                            
+                                            <div class="mb-3">
+                                                <label for="motivo_rechazo{{ pedido.id }}" class="form-label">Motivo del rechazo</label>
+                                                <textarea class="form-control" id="motivo_rechazo{{ pedido.id }}" 
+                                                          name="observaciones" rows="3" required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-danger">Confirmar Rechazo</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif pedido.estado == 'aprobado' %}
+                        <!-- Modal Entregar -->
+                        <div class="modal fade" id="entregarPedido{{ pedido.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin.entregar_pedido', id=pedido.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <div class="modal-header bg-info text-white">
+                                            <h5 class="modal-title">Registrar Entrega #{{ pedido.id }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Desea marcar como entregado el siguiente pedido?</p>
+                                            <ul>
+                                                <li><strong>Técnico:</strong> {{ pedido.tecnico.nombre }}</li>
+                                                <li><strong>Pieza:</strong> {{ pedido.parte.nombre }}</li>
+                                                <li><strong>Cantidad Aprobada:</strong> {{ pedido.cantidad_aprobada }}</li>
+                                            </ul>
+                                            
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Esta acción registrará la entrega de las piezas al técnico.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-info text-white">Confirmar Entrega</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center">No hay pedidos que coincidan con los filtros seleccionados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if pedidos.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pedidos.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.gestionar_pedidos', page=pedidos.prev_num, estado=estado_actual) }}" aria-label="Anterior">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in pedidos.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == pedidos.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin.gestionar_pedidos', page=page_num, estado=estado_actual) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pedidos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.gestionar_pedidos', page=pedidos.next_num, estado=estado_actual) }}" aria-label="Siguiente">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- DataTables JavaScript -->
+<script>
+    // Activar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Validación de cantidad en el modal de aprobación
+    document.addEventListener('DOMContentLoaded', function() {
+        var modals = document.querySelectorAll('[id^="aprobarPedido"]');
+        modals.forEach(function(modal) {
+            modal.addEventListener('shown.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var modal = this;
+                var form = modal.querySelector('form');
+                var input = modal.querySelector('input[type="number"]');
+                var max = parseInt(input.max);
+                
+                form.addEventListener('submit', function(e) {
+                    var value = parseInt(input.value);
+                    if (isNaN(value) || value < 1 || value > max) {
+                        e.preventDefault();
+                        alert('La cantidad debe estar entre 1 y ' + max);
+                        input.focus();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

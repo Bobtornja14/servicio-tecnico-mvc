@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-shopping-cart me-2"></i>Mis Pedidos de Piezas</h2>
+    <a href="{{ url_for('tecnico.solicitar_pieza') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nueva Solicitud
+    </a>
+</div>
+
+<!-- Filtros de estado -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('tecnico.mis_pedidos', estado='todos') }}" 
+               class="btn btn-outline-secondary {{ 'active' if estado_actual == 'todos' else '' }}">
+                <i class="fas fa-list me-1"></i>Todos
+            </a>
+            <a href="{{ url_for('tecnico.mis_pedidos', estado='pendientes') }}" 
+               class="btn btn-outline-warning {{ 'active' if estado_actual == 'pendientes' else '' }}">
+                <i class="fas fa-clock me-1"></i>Pendientes
+            </a>
+            <a href="{{ url_for('tecnico.mis_pedidos', estado='aprobados') }}" 
+               class="btn btn-outline-success {{ 'active' if estado_actual == 'aprobados' else '' }}">
+                <i class="fas fa-check me-1"></i>Aprobados
+            </a>
+            <a href="{{ url_for('tecnico.mis_pedidos', estado='entregados') }}" 
+               class="btn btn-outline-info {{ 'active' if estado_actual == 'entregados' else '' }}">
+                <i class="fas fa-box me-1"></i>Entregados
+            </a>
+            <a href="{{ url_for('tecnico.mis_pedidos', estado='rechazados') }}" 
+               class="btn btn-outline-danger {{ 'active' if estado_actual == 'rechazados' else '' }}">
+                <i class="fas fa-times me-1"></i>Rechazados
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if pedidos.items %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Pieza</th>
+                        <th>Cantidad</th>
+                        <th>Urgencia</th>
+                        <th>Estado</th>
+                        <th>Fecha Pedido</th>
+                        <th>Observaciones Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos.items %}
+                    <tr>
+                        <td>#{{ pedido.id }}</td>
+                        <td>
+                            <strong>{{ pedido.parte.nombre }}</strong><br>
+                            <small class="text-muted">{{ pedido.parte.codigo }}</small>
+                        </td>
+                        <td>
+                            {{ pedido.cantidad_solicitada }}
+                            {% if pedido.cantidad_aprobada > 0 %}
+                            <br><small class="text-success">Aprobado: {{ pedido.cantidad_aprobada }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' if pedido.urgencia == 'alta' else 'info' if pedido.urgencia == 'normal' else 'secondary' }}">
+                                {{ pedido.urgencia.title() }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'warning' if pedido.estado == 'pendiente' else 'success' if pedido.estado == 'aprobado' else 'info' if pedido.estado == 'entregado' else 'danger' }}">
+                                {{ pedido.estado.title() }}
+                            </span>
+                        </td>
+                        <td>{{ pedido.fecha_pedido.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if pedido.observaciones_admin %}
+                            <small>{{ pedido.observaciones_admin[:50] }}{% if pedido.observaciones_admin|length > 50 %}...{% endif %}</small>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay pedidos {{ 'pendientes' if estado_actual == 'pendientes' else 'aprobados' if estado_actual == 'aprobados' else 'entregados' if estado_actual == 'entregados' else 'rechazados' if estado_actual == 'rechazados' else '' }}</h5>
+            {% if estado_actual == 'todos' %}
+            <p class="text-muted">Comience solicitando su primera pieza</p>
+            <a href="{{ url_for('tecnico.solicitar_pieza') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nueva Solicitud
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

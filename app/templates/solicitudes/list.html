@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gestión de Solicitudes</h2>
+    {% if current_user.is_admin() or current_user.is_tecnico() %}
+    <a href="{{ url_for('solicitudes.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nueva Solicitud
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filtros de estado -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('solicitudes.list', estado='todas') }}"
+               class="btn btn-outline-secondary {{ 'active' if estado_actual == 'todas' else '' }}">
+                <i class="fas fa-list me-1"></i>Todas
+            </a>
+            <a href="{{ url_for('solicitudes.list', estado='pendientes') }}"
+               class="btn btn-outline-warning {{ 'active' if estado_actual == 'pendientes' else '' }}">
+                <i class="fas fa-clock me-1"></i>Pendientes
+            </a>
+            <a href="{{ url_for('solicitudes.list', estado='asignadas') }}"
+               class="btn btn-outline-info {{ 'active' if estado_actual == 'asignadas' else '' }}">
+                <i class="fas fa-user-check me-1"></i>Asignadas
+            </a>
+            <a href="{{ url_for('solicitudes.list', estado='proceso') }}"
+               class="btn btn-outline-primary {{ 'active' if estado_actual == 'proceso' else '' }}">
+                <i class="fas fa-cog me-1"></i>En Proceso
+            </a>
+            <a href="{{ url_for('solicitudes.list', estado='completadas') }}"
+               class="btn btn-outline-success {{ 'active' if estado_actual == 'completadas' else '' }}">
+                <i class="fas fa-check-circle me-1"></i>Completadas
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if solicitudes.items %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Fecha Solicitud</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for solicitud in solicitudes.items %}
+                    <tr>
+                        <td>#{{ solicitud.id }}</td>
+                        <td>{{ solicitud.cliente.nombre }}</td>
+                        <td>{{ solicitud.servicio.nombre }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'warning' if solicitud.estado == 'pendiente' else 'info' if solicitud.estado == 'asignada' else 'primary' if solicitud.estado == 'en_proceso' else 'success' if solicitud.estado == 'completada' else 'danger' }}">
+                                {{ solicitud.estado.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'danger' if solicitud.prioridad == 'urgente' else 'warning' if solicitud.prioridad == 'alta' else 'info' if solicitud.prioridad == 'media' else 'secondary' }}">
+                                {{ solicitud.prioridad.title() }}
+                            </span>
+                        </td>
+                        <td>{{ solicitud.fecha_solicitud.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('solicitudes.detail', id=solicitud.id) }}"
+                                   class="btn btn-sm btn-outline-info" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if current_user.is_admin() or current_user.is_tecnico() %}
+                                <a href="{{ url_for('solicitudes.edit', id=solicitud.id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                                {% if current_user.is_admin() and solicitud.estado == 'pendiente' %}
+                                <form method="POST" action="{{ url_for('solicitudes.delete', id=solicitud.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('¿Está seguro de cancelar esta solicitud?')"
+                                            title="Cancelar">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay solicitudes {{ 'pendientes' if estado_actual == 'pendientes' else 'asignadas' if estado_actual == 'asignadas' else 'en proceso' if estado_actual == 'proceso' else 'completadas' if estado_actual == 'completadas' else '' }}</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

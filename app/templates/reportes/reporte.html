@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Reporte de Servicio #{{ asignacion.id }}</h4>
+                <div>
+                    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-print me-1"></i>Imprimir
+                    </button>
+                    <a href="{{ url_for('reportes.list') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Información del servicio -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">INFORMACIÓN DEL CLIENTE</h6>
+                        <p class="mb-1"><strong>{{ asignacion.solicitud.cliente.nombre }}</strong></p>
+                        {% if asignacion.solicitud.cliente.email %}
+                        <p class="mb-1">{{ asignacion.solicitud.cliente.email }}</p>
+                        {% endif %}
+                        <p class="mb-1">{{ asignacion.solicitud.cliente.telefono }}</p>
+                        {% if asignacion.solicitud.cliente.direccion %}
+                        <p class="mb-0">{{ asignacion.solicitud.cliente.direccion }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">DETALLES DEL SERVICIO</h6>
+                        <p class="mb-1"><strong>Servicio:</strong> {{ asignacion.solicitud.servicio.nombre }}</p>
+                        <p class="mb-1"><strong>Técnico:</strong> {{ asignacion.tecnico.nombre }}</p>
+                        <p class="mb-1"><strong>Fecha Asignación:</strong> {{ asignacion.fecha_asignacion.strftime('%d/%m/%Y') }}</p>
+                        <p class="mb-1">
+                            <strong>Estado:</strong> 
+                            <span class="badge bg-{{ 'warning' if asignacion.estado == 'asignada' else 'info' if asignacion.estado == 'en_proceso' else 'success' }}">
+                                {{ asignacion.estado.replace('_', ' ').title() }}
+                            </span>
+                        </p>
+                        {% if asignacion.fecha_finalizacion %}
+                        <p class="mb-0"><strong>Fecha Finalización:</strong> {{ asignacion.fecha_finalizacion.strftime('%d/%m/%Y %H:%M') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Descripción del problema -->
+                <div class="mb-4">
+                    <h6 class="text-muted">DESCRIPCIÓN DEL PROBLEMA</h6>
+                    <p>{{ asignacion.solicitud.descripcion_problema }}</p>
+                </div>
+                
+                <!-- Observaciones del técnico -->
+                {% if asignacion.observaciones %}
+                <div class="mb-4">
+                    <h6 class="text-muted">OBSERVACIONES DEL TÉCNICO</h6>
+                    <p style="white-space: pre-line;">{{ asignacion.observaciones }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Tiempo estimado vs real -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        {% if asignacion.tiempo_estimado %}
+                        <h6 class="text-muted">TIEMPO ESTIMADO</h6>
+                        <p>{{ asignacion.tiempo_estimado }} horas</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if asignacion.tiempo_real %}
+                        <h6 class="text-muted">TIEMPO REAL</h6>
+                        <p>{{ asignacion.tiempo_real }} horas</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Sección de firma -->
+                {% if asignacion.estado == 'completada' %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Servicio Completado y Firmado</strong>
+                </div>
+                {% else %}
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-signature me-2"></i>Firma del Cliente</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="nombreCliente" class="form-label">Nombre del Cliente:</label>
+                            <input type="text" class="form-control" id="nombreCliente" 
+                                   value="{{ asignacion.solicitud.cliente.nombre }}" 
+                                   placeholder="Confirme su nombre completo">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Firme en el recuadro a continuación:</label>
+                            <div class="border border-2 border-primary rounded" style="position: relative;">
+                                <canvas id="firmaCanvas" width="600" height="200" 
+                                        style="display: block; cursor: crosshair; touch-action: none;"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle text-muted" 
+                                     id="firmaPlaceholder" style="pointer-events: none;">
+                                    <i class="fas fa-signature fa-2x"></i>
+                                    <p class="mt-2">Firme aquí con el dedo o mouse</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" id="limpiarFirma">
+                                <i class="fas fa-eraser me-2"></i>Limpiar
+                            </button>
+                            <button type="button" class="btn btn-success" id="guardarFirma">
+                                <i class="fas fa-save me-2"></i>Guardar Firma y Completar Servicio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para la firma táctil -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('firmaCanvas');
+    const placeholder = document.getElementById('firmaPlaceholder');
+    
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let hasFirma = false;
+    
+    // Configurar canvas
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    
+    // Función para obtener posición del mouse/touch
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+    
+    // Eventos de mouse
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Eventos táctiles
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        startDrawing(e);
+    });
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        draw(e);
+    });
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        stopDrawing(e);
+    });
+    
+    function startDrawing(e) {
+        isDrawing = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        
+        if (!hasFirma) {
+            placeholder.style.display = 'none';
+            hasFirma = true;
+        }
+    }
+    
+    function draw(e) {
+        if (!isDrawing) return;
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+    }
+    
+    // Limpiar firma
+    document.getElementById('limpiarFirma').addEventListener('click', function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        placeholder.style.display = 'block';
+        hasFirma = false;
+    });
+    
+    // Guardar firma
+    document.getElementById('guardarFirma').addEventListener('click', function() {
+        if (!hasFirma) {
+            alert('Por favor, firme antes de guardar.');
+            return;
+        }
+        
+        const nombreCliente = document.getElementById('nombreCliente').value.trim();
+        if (!nombreCliente) {
+            alert('Por favor, ingrese el nombre del cliente.');
+            return;
+        }
+        
+        const firmaData = canvas.toDataURL('image/png');
+        
+        // Enviar firma al servidor
+        fetch('{{ url_for("reportes.guardar_firma", id=asignacion.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                firma: firmaData,
+                nombre_cliente: nombreCliente
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Firma guardada exitosamente. El servicio ha sido marcado como completado.');
+                window.location.reload();
+            } else {
+                alert('Error al guardar la firma: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al guardar la firma.');
+        });
+    });
+});
+</script>
+
+<style>
+@media print {
+    .btn, .card-header .btn {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    #firmaCanvas {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %}

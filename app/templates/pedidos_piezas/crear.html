@@ -1,0 +1,662 @@
+{% extends "pedidos_piezas/base.html" %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.list') }}" class="text-decoration-none">
+            <i class="fas fa-list me-1"></i> Mis Pedidos
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="fas fa-plus-circle me-1"></i> Nuevo Pedido
+    </li>
+{% endblock %}
+
+{% block page_title %}Nuevo Pedido de Piezas{% endblock %}
+
+{% block page_subtitle %}Complete el formulario para solicitar una nueva pieza{% endblock %}
+
+{% block pedidos_content %}
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tools me-2 text-primary"></i>Solicitud de Piezas
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('pedidos_piezas.crear') }}" id="pedidoForm" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="selectPieza" class="form-label fw-semibold">
+                                    <i class="fas fa-search me-1"></i>Buscar Pieza
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select select2" id="selectPieza" required>
+                                    <option value="" selected disabled>Escribe el nombre o código de la pieza...</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Por favor selecciona una pieza de la lista
+                                </div>
+                                {{ form.parte_id(class="d-none") }}
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>Comienza a escribir para buscar entre las piezas disponibles
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="{{ form.asignacion_id.id }}" class="form-label fw-semibold">
+                                    <i class="fas fa-tasks me-1"></i>Asignación (Opcional)
+                                </label>
+                                {{ form.asignacion_id(class="form-select select2") }}
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>Selecciona una asignación si el pedido está relacionado con un trabajo específico
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-4">
+                            <div class="form-group">
+                                <label for="{{ form.cantidad_solicitada.id }}" class="form-label fw-semibold">
+                                    <i class="fas fa-calculator me-1"></i>Cantidad Solicitada
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    {{ form.cantidad_solicitada(
+                                        class="form-control",
+                                        placeholder="Ej: 1",
+                                        min="1",
+                                        required,
+                                        oninput="this.value = Math.abs(this.value) || ''"
+                                    ) }}
+                                    <span class="input-group-text">unidades</span>
+                                </div>
+                                <div id="stockDisponible" class="form-text mt-1">
+                                    <i class="fas fa-boxes me-1"></i>Stock disponible: <span class="fw-bold">-</span>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor ingresa una cantidad válida
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-8">
+                            <div class="form-group">
+                                <label class="form-label fw-semibold d-block mb-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Nivel de Urgencia
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="btn-group w-100" role="group" id="urgenciaGroup">
+                                    <input type="radio" class="btn-check" 
+                                           name="{{ form.urgencia.name }}" 
+                                           id="urgencia_baja" 
+                                           value="baja" 
+                                           autocomplete="off"
+                                           {% if form.urgencia.data == 'baja' %}checked{% endif %}>
+                                    <label class="btn btn-outline-secondary" for="urgencia_baja" data-bs-toggle="tooltip" title="Baja prioridad - Repuesto para stock o necesidad futura">
+                                        <i class="fas fa-walking me-1"></i> Baja
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" 
+                                           name="{{ form.urgencia.name }}" 
+                                           id="urgencia_normal" 
+                                           value="normal" 
+                                           autocomplete="off"
+                                           {% if not form.urgencia.data or form.urgencia.data == 'normal' %}checked{% endif %}>
+                                    <label class="btn btn-outline-primary" for="urgencia_normal" data-bs-toggle="tooltip" title="Prioridad normal - La pieza es necesaria pero no es crítica a corto plazo">
+                                        <i class="fas fa-truck me-1"></i> Normal
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" 
+                                           name="{{ form.urgencia.name }}" 
+                                           id="urgencia_alta" 
+                                           value="alta" 
+                                           autocomplete="off"
+                                           {% if form.urgencia.data == 'alta' %}checked{% endif %}>
+                                    <label class="btn btn-outline-warning" for="urgencia_alta" data-bs-toggle="tooltip" title="Alta prioridad - La pieza es necesaria para completar una reparación importante">
+                                        <i class="fas fa-running me-1"></i> Alta
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" 
+                                           name="{{ form.urgencia.name }}" 
+                                           id="urgencia_urgente" 
+                                           value="urgente" 
+                                           autocomplete="off"
+                                           {% if form.urgencia.data == 'urgente' %}checked{% endif %}>
+                                    <label class="btn btn-outline-danger" for="urgencia_urgente" data-bs-toggle="tooltip" title="Urgente - El equipo no funciona sin esta pieza y está afectando al cliente">
+                                        <i class="fas fa-ambulance me-1"></i> Urgente
+                                    </label>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor selecciona un nivel de urgencia
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <label for="{{ form.motivo.id }}" class="form-label fw-semibold">
+                                <i class="fas fa-comment-dots me-1"></i>Motivo de la Solicitud
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.motivo(
+                                class="form-control", 
+                                rows="3",
+                                placeholder="Ej: Necesito esta pieza para reemplazar el módulo dañado en el equipo del cliente...",
+                                required
+                            ) }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>Describe por qué necesitas esta pieza y cómo será utilizada en la reparación
+                            </div>
+                            <div class="invalid-feedback">
+                                Por favor describe el motivo de la solicitud
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <label for="{{ form.notas.id }}" class="form-label fw-semibold">
+                                <i class="fas fa-sticky-note me-1"></i>Notas Adicionales
+                                <span class="text-muted small">(Opcional)</span>
+                            </label>
+                            {{ form.notas(
+                                class="form-control", 
+                                rows="2", 
+                                placeholder="Ej: El cliente prefiere la versión original del fabricante, no genérica..."
+                            ) }}
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>Información adicional que pueda ser útil para el encargado de compras
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Importante:</strong> Tu pedido será revisado por el administrador. 
+                                Recibirás una notificación una vez que sea aprobado o rechazado.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-4 pt-3 border-top">
+                        <a href="{{ url_for('pedidos_piezas.listar') }}" class="btn btn-outline-secondary order-2 order-sm-1 w-100 w-sm-auto">
+                            <i class="fas fa-arrow-left me-1"></i> Volver al listado
+                        </a>
+                        
+                        <div class="d-flex flex-column flex-sm-row gap-2 order-1 order-sm-2 w-100 w-sm-auto">
+                            <button type="button" class="btn btn-outline-danger" id="btnResetForm">
+                                <i class="fas fa-undo me-1"></i> Limpiar formulario
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="btnSubmit">
+                                <i class="fas fa-paper-plane me-1"></i> Enviar Solicitud
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Resumen del Pedido -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-list me-2 text-primary"></i>Resumen del Pedido
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="fas fa-info-circle me-1"></i> La información se actualizará automáticamente
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <h6 class="mb-0 fw-semibold">Pieza seleccionada:</h6>
+                    <span class="badge bg-light text-dark text-wrap text-end" id="nombrePieza">-</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Cantidad:</span>
+                    <span id="cantidadResumen" class="fw-medium">-</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Precio unitario:</span>
+                    <span id="precioUnitario" class="fw-medium">-</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 pt-2 border-top">
+                    <h6 class="mb-0 fw-semibold">Total estimado:</h6>
+                    <span class="h5 mb-0 text-primary fw-bold" id="totalEstimado">-</span>
+                </div>
+                
+                <div class="alert alert-warning small mb-0 d-none" id="stockWarning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <span id="stockMessage">Stock insuficiente para esta cantidad</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Historial de la Pieza -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2 text-primary"></i>Historial Reciente
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="historialPieza" class="list-group list-group-flush">
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-search mb-2 d-block" style="font-size: 1.5rem;"></i>
+                        <span>Selecciona una pieza para ver su historial</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Guía de Urgencia -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2 text-primary"></i>Guía de Urgencia
+                </h5>
+            </div>
+            <div class="card-body small">
+                <div class="d-flex mb-3">
+                    <span class="badge bg-secondary align-self-start me-2 mt-1">Baja</span>
+                    <div>
+                        <div class="fw-semibold">Repuesto para stock</div>
+                        <div class="text-muted">Necesidad futura o pieza de repuesto sin urgencia</div>
+                    </div>
+                </div>
+                
+                <div class="d-flex mb-3">
+                    <span class="badge bg-primary align-self-start me-2 mt-1">Normal</span>
+                    <div>
+                        <div class="fw-semibold">Prioridad estándar</div>
+                        <div class="text-muted">La pieza es necesaria pero no es crítica a corto plazo</div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1"><span class="badge bg-primary">Normal</span></h6>
+                        </div>
+                        <p class="mb-1 small">La pieza es necesaria pero no es crítica a corto plazo.</p>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1"><span class="badge bg-secondary">Baja</span></h6>
+                        </div>
+                        <p class="mb-1 small">Repuesto para stock o necesidad futura.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+/**
+ * Script para el formulario de solicitud de piezas
+ * Maneja la búsqueda de piezas, validación y envío del formulario
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del DOM
+    const $selectPieza = $('#selectPieza');
+    const $form = $('#pedidoForm');
+    const $cantidadInput = $('#cantidad_solicitada');
+    const $motivoInput = $('#motivo');
+    const $submitBtn = $form.find('button[type="submit"]');
+    const $resetBtn = $('#btnResetForm');
+
+    // Inicializar Select2 para búsqueda de piezas
+    $selectPieza.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        ajax: {
+            url: '{{ url_for("pedidos_piezas.buscar_partes") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    q: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function(data, params) {
+                try {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.results || [],
+                        pagination: {
+                            more: (params.page * 30) < (data.total_count || 0)
+                        }
+                    };
+                } catch (error) {
+                    console.error('Error al procesar resultados:', error);
+                    showAlert('Error al cargar las piezas. Por favor, intente nuevamente.', 'danger');
+                    return { results: [] };
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Error en la búsqueda de piezas:', textStatus, errorThrown);
+                showAlert('Error al buscar piezas. Por favor, intente nuevamente.', 'danger');
+            },
+            cache: true
+        },
+        placeholder: 'Buscar pieza por nombre o código',
+        minimumInputLength: 2,
+        templateResult: formatPieza,
+        templateSelection: formatPiezaSeleccionada,
+        escapeMarkup: function(markup) { return markup; }
+    });
+    
+    // Manejar selección de pieza
+    $selectPieza.on('select2:select', function(e) {
+        try {
+            const data = e.params.data;
+            if (!data || !data.id) return;
+            
+            // Actualizar campo oculto con el ID de la pieza
+            $('#parte_id').val(data.id);
+            
+            // Mostrar detalles de la pieza
+            $('#detallePieza').removeClass('d-none');
+            $('#resumenPedido').addClass('d-none');
+            
+            // Actualizar información de la pieza
+            updatePiezaInfo(data);
+            
+            // Cargar historial de pedidos
+            cargarHistorialPedidos(data.id);
+            
+        } catch (error) {
+            console.error('Error al seleccionar pieza:', error);
+            showAlert('Error al cargar los detalles de la pieza.', 'danger');
+        }
+    });
+    
+    // Actualizar información de la pieza seleccionada
+    function updatePiezaInfo(pieza) {
+        // Validar datos de entrada
+        if (!pieza) return;
+        
+        // Actualizar campos de información
+        $('#nombrePieza').text(pieza.nombre || '-');
+        $('#codigoPieza').text(pieza.codigo || '-');
+        
+        // Formatear y mostrar precio
+        const precio = parseFloat(pieza.precio) || 0;
+        $('#precioPieza').text(formatoMoneda(precio));
+        $('#precioPieza').data('valor', precio);
+        
+        // Actualizar stock
+        const stock = parseInt(pieza.stock) || 0;
+        $('#stockPieza').text(`${stock} ${stock === 1 ? 'unidad' : 'unidades'}`);
+        $('.stock-disponible').text(stock);
+        
+        // Actualizar imagen si está disponible
+        const $imagenPieza = $('#imagenPieza');
+        if (pieza.imagen_url) {
+            $imagenPieza.attr('src', pieza.imagen_url).show();
+        } else {
+            $imagenPieza.hide();
+        }
+        
+        // Actualizar el total
+        updateTotal();
+    }
+    
+    // Actualizar el total basado en la cantidad ingresada
+    function updateTotal() {
+        const cantidad = parseInt($cantidadInput.val()) || 0;
+        const precio = parseFloat($('#precioPieza').data('valor') || 0);
+        const total = cantidad * precio;
+        
+        $('#totalPieza').text(formatoMoneda(total));
+    }
+    
+    // Formatear la visualización de las piezas en el dropdown
+    function formatPieza(pieza) {
+        if (!pieza || !pieza.id) { 
+            return pieza.text || 'Seleccionar...'; 
+        }
+        
+        const stock = parseInt(pieza.stock) || 0;
+        const precio = parseFloat(pieza.precio) || 0;
+        const stockClass = stock > 0 ? 'text-success' : 'text-danger';
+        
+        return $(
+            `<div class="d-flex justify-content-between align-items-center">
+                <div class="flex-grow-1 me-3">
+                    <div class="fw-bold text-truncate">${escapeHtml(pieza.text || '')}</div>
+                    <small class="text-muted">${escapeHtml(pieza.codigo || '')}</small>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold ${stockClass}">${stock} en stock</div>
+                    <small class="text-muted">${precio > 0 ? formatoMoneda(precio) : 'Precio no disponible'}</small>
+                </div>
+            </div>`
+        );
+    }
+    
+    // Formatear la visualización de la pieza seleccionada
+    function formatPiezaSeleccionada(pieza) {
+        if (!pieza || !pieza.id) { 
+            return $('<span class="text-muted">Seleccionar pieza...</span>');
+        }
+        return $(
+            `<span class="text-truncate d-inline-block" style="max-width: 90%">
+                ${escapeHtml(pieza.text || '')} 
+                <small class="text-muted">${escapeHtml(pieza.codigo || '')}</small>
+            </span>`
+        );
+    }
+    
+    // Escapar HTML para prevenir XSS
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    
+    // Formatear moneda
+    function formatoMoneda(monto) {
+        if (monto === undefined || monto === null || isNaN(monto)) return '$0,00';
+        return new Intl.NumberFormat('es-AR', { 
+            style: 'currency', 
+            currency: 'ARS',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(monto);
+    }
+    
+    // Cargar historial de pedidos de la pieza
+    function cargarHistorialPedidos(parteId) {
+        if (!parteId) return;
+        
+        const $historialContainer = $('#historialPedidos');
+        $historialContainer.html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm" role="status"></div> Cargando historial...</div>');
+        
+        // En una implementación real, aquí iría una llamada AJAX al servidor
+        // Por ahora usamos un timeout para simular la carga
+        setTimeout(function() {
+            try {
+                // Datos de ejemplo - en producción esto vendría del servidor
+                const historial = [
+                    { fecha: '2023-10-15', cantidad: 2, estado: 'Aprobado' },
+                    { fecha: '2023-09-28', cantidad: 1, estado: 'Entregado' },
+                    { fecha: '2023-08-10', cantidad: 3, estado: 'Entregado' }
+                ];
+                
+                if (historial && historial.length > 0) {
+                    let html = '';
+                    historial.forEach(function(item) {
+                        const estadoClass = item.estado === 'Entregado' ? 'success' : 
+                                         item.estado === 'Aprobado' ? 'info' : 'secondary';
+                        
+                        html += `
+                            <div class="d-flex justify-content-between align-items-center mb-2 py-1 border-bottom">
+                                <span class="text-muted small">${item.fecha}</span>
+                                <span class="small">${item.cantidad} ${item.cantidad === 1 ? 'unidad' : 'unidades'}</span>
+                                <span class="badge bg-${estadoClass} small">${item.estado}</span>
+                            </div>
+                        `;
+                    });
+                    $historialContainer.html(html);
+                } else {
+                    $historialContainer.html('<div class="text-center py-3 text-muted"><i class="fas fa-history me-1"></i> No hay historial reciente</div>');
+                }
+            } catch (error) {
+                console.error('Error al cargar el historial:', error);
+                $historialContainer.html('<div class="alert alert-warning py-2 small mb-0">Error al cargar el historial de pedidos.</div>');
+            }
+        }, 500);
+    }
+    
+    // Validar formulario antes de enviar
+    $form.on('submit', function(e) {
+        e.preventDefault();
+        
+        // Validar selección de pieza
+        if (!$('#parte_id').val()) {
+            showAlert('Debes seleccionar una pieza para continuar', 'warning');
+            $selectPieza.select2('open');
+            return false;
+        }
+        
+        // Validar cantidad
+        const cantidad = parseInt($cantidadInput.val());
+        if (isNaN(cantidad) || cantidad <= 0) {
+            showAlert('La cantidad debe ser un número mayor que cero', 'warning');
+            $cantidadInput.focus();
+            return false;
+        }
+        
+        // Validar motivo
+        const motivo = $motivoInput.val().trim();
+        if (motivo.length < 10) {
+            showAlert('Por favor, proporciona un motivo detallado para el pedido (mínimo 10 caracteres)', 'warning');
+            $motivoInput.focus();
+            return false;
+        }
+        
+        // Mostrar confirmación
+        Swal.fire({
+            title: '¿Confirmar pedido?',
+            text: '¿Estás seguro de enviar esta solicitud de pedido?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, enviar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Deshabilitar botón y mostrar indicador de carga
+                $submitBtn.prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Enviando...');
+                
+                // Enviar formulario
+                $form[0].submit();
+            }
+        });
+    });
+    
+    // Manejar el botón de limpiar formulario
+    $resetBtn.on('click', function() {
+        Swal.fire({
+            title: '¿Limpiar formulario?',
+            text: 'Se perderán todos los datos ingresados.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, limpiar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                resetForm();
+            }
+        });
+    });
+    
+    // Reiniciar formulario
+    function resetForm() {
+        $form.trigger('reset');
+        $selectPieza.val(null).trigger('change');
+        $('#detallePieza').addClass('d-none');
+        $('#resumenPedido').removeClass('d-none');
+        $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Enviar Solicitud');
+    }
+    
+    // Mostrar notificación
+    function showAlert(message, type = 'info') {
+        // Usar SweetAlert2 si está disponible, de lo contrario usar alert nativo
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+            
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        } else {
+            alert(message);
+        }
+    }
+    
+    // Inicializar tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover'
+        });
+    });
+    
+    // Actualizar total cuando cambia la cantidad
+    $cantidadInput.on('input', function() {
+        updateTotal();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,529 @@
+{% extends "pedidos_piezas/base.html" %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('main.index') }}" class="text-decoration-none">
+            <i class="fas fa-home me-1"></i>Inicio
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.list') }}" class="text-decoration-none">
+            <i class="fas fa-tools me-1"></i>Pedidos de Piezas
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}" class="text-decoration-none">
+            <i class="fas fa-file-alt me-1"></i>Pedido #{{ pedido.id }}
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="fas fa-truck-loading me-1"></i>Registrar Entrega
+    </li>
+{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-truck-loading me-2"></i>Registrar Entrega - Pedido #{{ pedido.id }}
+{% endblock %}
+
+{% block pedidos_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Detalles de la Entrega</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="fas fa-info-circle me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Confirmar Entrega de Pieza</h6>
+                        <p class="mb-0">
+                            Estás a punto de registrar la entrega de <strong>{{ pedido.cantidad_aprobada }} {{ pedido.parte.nombre }}</strong>
+                            al técnico <strong>{{ pedido.tecnico.nombre }}</strong>.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>Detalles del Pedido
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 fw-semibold">Pieza:</h6>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="mb-1">{{ pedido.parte.nombre }}</p>
+                                        <small class="text-muted">Código: {{ pedido.parte.codigo }}</small>
+                                    </div>
+                                    <span class="badge bg-primary">{{ pedido.urgencia|upper }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="list-group-item">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Solicitado:</small>
+                                        <p class="mb-0 fw-semibold">{{ pedido.cantidad_solicitada }} unidades</p>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Aprobado:</small>
+                                        <p class="mb-0 fw-semibold text-success">{{ pedido.cantidad_aprobada }} unidades</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Stock Disponible:</small>
+                                        <p class="mb-0 fw-semibold">
+                                            {{ pedido.parte.stock }} unidades
+                                            {% if pedido.parte.stock < pedido.cantidad_aprobada %}
+                                                <span class="badge bg-danger ms-2">Stock insuficiente</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <i class="fas fa-boxes text-primary" style="font-size: 1.5rem;"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="list-group-item">
+                                <small class="text-muted">Técnico:</small>
+                                <p class="mb-0">
+                                    <i class="fas fa-user-tie me-2 text-primary"></i>
+                                    {{ pedido.tecnico.nombre }}
+                                </p>
+                                {% if pedido.asignacion %}
+                                <div class="mt-2 pt-2 border-top">
+                                    <small class="text-muted">Asignación:</small>
+                                    <p class="mb-0">
+                                        <i class="fas fa-tasks me-2 text-info"></i>
+                                        <a href="{{ url_for('asignaciones.ver', id=pedido.asignacion.id) }}" class="text-decoration-none">
+                                            #{{ pedido.asignacion.id }} - {{ pedido.asignacion.solicitud.cliente.nombre }}
+                                        </a>
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{{ url_for('pedidos_piezas.entregar', id=pedido.id) }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-truck-loading me-2"></i>Detalles de la Entrega
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.cantidad_entregada.id }}" class="form-label fw-semibold">
+                                            <i class="fas fa-boxes me-1"></i>Cantidad a Entregar
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            {{ form.cantidad_entregada(
+                                                class="form-control" + (' is-invalid' if form.cantidad_entregada.errors else ''),
+                                                min="1",
+                                                max=pedido.cantidad_aprobada,
+                                                required
+                                            ) }}
+                                            <span class="input-group-text">/ {{ pedido.cantidad_aprobada }} aprobados</span>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>Stock disponible: {{ pedido.parte.stock }} unidades
+                                        </div>
+                                        {% if form.cantidad_entregada.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ form.cantidad_entregada.errors[0] }}
+                                            </div>
+                                        {% else %}
+                                            <div class="invalid-feedback">
+                                                Por favor ingresa una cantidad válida (máx. {{ [pedido.cantidad_aprobada, pedido.parte.stock]|min }}).
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.fecha_entrega.id }}" class="form-label fw-semibold">
+                                            <i class="far fa-calendar-alt me-1"></i>Fecha y Hora de Entrega
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.fecha_entrega(
+                                            class="form-control" + (' is-invalid' if form.fecha_entrega.errors else ''),
+                                            required
+                                        ) }}
+                                        {% if form.fecha_entrega.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ form.fecha_entrega.errors[0] }}
+                                            </div>
+                                        {% else %}
+                                            <div class="invalid-feedback">
+                                                Por favor selecciona una fecha y hora válidas.
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label for="{{ form.observaciones.id }}" class="form-label fw-semibold">
+                                            <i class="far fa-sticky-note me-1"></i>Observaciones
+                                            <span class="text-muted small">(Opcional)</span>
+                                        </label>
+                                        {{ form.observaciones(
+                                            class="form-control" + (' is-invalid' if form.observaciones.errors else ''),
+                                            rows="3",
+                                            placeholder="Ej: Se entregaron todas las piezas en buen estado. El técnico verificó el contenido."
+                                        ) }}
+                                        {% if form.observaciones.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ form.observaciones.errors[0] }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">
+                                            <i class="fas fa-lightbulb me-1"></i>Agrega cualquier detalle relevante sobre la entrega.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                        <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}" class="btn btn-outline-secondary order-2 order-sm-1 w-100 w-sm-auto">
+                            <i class="fas fa-arrow-left me-1"></i> Volver al Pedido
+                        </a>
+                        
+                        <div class="d-flex flex-column flex-sm-row gap-2 order-1 order-sm-2 w-100 w-sm-auto">
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelarModal">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-success" id="btnConfirmarEntrega">
+                                <i class="fas fa-check-circle me-1"></i> Confirmar Entrega
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Modal de confirmación de cancelación -->
+                <div class="modal fade" id="cancelarModal" tabindex="-1" aria-labelledby="cancelarModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title" id="cancelarModalLabel">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Cancelación
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>¿Estás seguro de que deseas cancelar el registro de entrega?</p>
+                                <p class="mb-0"><strong>Todos los cambios no guardados se perderán.</strong></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i> Seguir Editando
+                                </button>
+                                <a href="{{ url_for('pedidos_piezas.ver', id=pedido.id) }}" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt me-1"></i> Descartar Cambios
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Resumen del Pedido -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-list me-2 text-primary"></i>Resumen del Pedido
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <h6 class="mb-0 fw-semibold">Pieza:</h6>
+                    <span class="badge bg-light text-dark text-wrap text-end">
+                        {{ pedido.parte.nombre }}
+                        <small class="d-block text-muted">{{ pedido.parte.codigo }}</small>
+                    </span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Cantidad:</span>
+                    <span class="fw-medium">{{ pedido.cantidad_aprobada }} unidades</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Precio unitario:</span>
+                    <span class="fw-medium">${{ "%.2f"|format(pedido.parte.precio_venta) }}</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 pt-2 border-top">
+                    <h6 class="mb-0 fw-semibold">Total estimado:</h6>
+                    <span class="h5 mb-0 text-primary fw-bold">${{ "%.2f"|format(pedido.cantidad_aprobada * pedido.parte.precio_venta) }}</span>
+                </div>
+                
+                <div class="alert alert-info py-2 small mb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            <strong>Estado actual:</strong> 
+                            <span class="text-capitalize">{{ pedido.estado.replace('_', ' ') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Guía de Entrega -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2 text-primary"></i>Guía de Entrega
+                </h5>
+            </div>
+            <div class="card-body small">
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Verificar Cantidad</div>
+                        <div class="text-muted">Confirma que la cantidad entregada coincida con la aprobada.</div>
+                    </div>
+                </div>
+                
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Estado de la Pieza</div>
+                        <div class="text-muted">Asegúrate de que la pieza esté en buen estado antes de entregarla.</div>
+                    </div>
+                </div>
+                
+                <div class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Documentación</div>
+                        <div class="text-muted">Adjunta factura u otra documentación si es necesario.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Validar el formulario de entrega
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del formulario
+    const form = document.querySelector('form.needs-validation');
+    const cantidadEntregadaInput = document.getElementById('{{ form.cantidad_entregada.id }}');
+    const btnConfirmarEntrega = document.getElementById('btnConfirmarEntrega');
+    const cantidadAprobada = {{ pedido.cantidad_aprobada }};
+    const stockDisponible = {{ pedido.parte.stock }};
+    const maxCantidad = Math.min(cantidadAprobada, stockDisponible);
+    
+    // Establecer el valor máximo permitido
+    if (cantidadEntregadaInput) {
+        cantidadEntregadaInput.max = maxCantidad;
+        cantidadEntregadaInput.placeholder = `Máx. ${maxCantidad}`;
+    }
+    
+    // Función para validar la cantidad
+    function validarCantidad() {
+        if (!cantidadEntregadaInput) return false;
+        
+        const valor = parseInt(cantidadEntregadaInput.value) || 0;
+        
+        if (valor <= 0) {
+            cantidadEntregadaInput.setCustomValidity('La cantidad debe ser mayor a cero');
+            return false;
+        } 
+        if (valor > cantidadAprobada) {
+            cantidadEntregadaInput.setCustomValidity(`No puede exceder la cantidad aprobada (${cantidadAprobada})`);
+            return false;
+        } 
+        if (valor > stockDisponible) {
+            cantidadEntregadaInput.setCustomValidity(`Stock insuficiente. Disponible: ${stockDisponible}`);
+            return false;
+        }
+        
+        cantidadEntregadaInput.setCustomValidity('');
+        return true;
+    }
+    
+    // Función para manejar el envío del formulario
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        if (!form.checkValidity() || !validarCantidad()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return false;
+        }
+        
+        // Confirmar antes de enviar
+        if (!confirm('¿Estás seguro de registrar esta entrega? Esta acción no se puede deshacer.')) {
+            return false;
+        }
+        
+        // Deshabilitar botón para evitar envíos duplicados
+        if (btnConfirmarEntrega) {
+            btnConfirmarEntrega.disabled = true;
+            btnConfirmarEntrega.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Procesando...';
+        }
+        
+        // Obtener el token CSRF
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        // Crear FormData con los datos del formulario
+        const formData = new FormData(form);
+        formData.append('csrf_token', csrfToken);
+        
+        // Enviar la solicitud AJAX
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.json().then(data => {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else if (data.error) {
+                    throw new Error(data.error);
+                }
+                return data;
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la entrega: ' + (error.message || 'Error desconocido'));
+            if (btnConfirmarEntrega) {
+                btnConfirmarEntrega.disabled = false;
+                btnConfirmarEntrega.innerHTML = '<i class="fas fa-check-circle me-1"></i> Confirmar Entrega';
+            }
+        });
+        
+        return false;
+    }
+    
+    // Función para manejar la entrada de cantidad
+    function handleCantidadInput() {
+        let valor = parseInt(this.value) || 0;
+        
+        // Asegurar que el valor no exceda el máximo
+        if (valor > maxCantidad) {
+            valor = maxCantidad;
+            this.value = valor;
+        } else if (valor < 0) {
+            valor = '';
+            this.value = '';
+        }
+        
+        // Actualizar validación visual
+        if (this.value !== '') {
+            validarCantidad();
+        }
+    }
+    
+    // Función para validar la fecha de entrega
+    function validarFechaEntrega() {
+        const fechaSeleccionada = new Date(this.value);
+        const ahora = new Date();
+        
+        // Añadir un pequeño margen para evitar problemas de tiempo
+        ahora.setMinutes(ahora.getMinutes() + 1);
+        
+        if (fechaSeleccionada > ahora) {
+            this.setCustomValidity('No se pueden registrar entregas con fecha futura');
+        } else {
+            this.setCustomValidity('');
+        }
+    }
+    
+    // Asignar manejadores de eventos
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
+    
+    // Manejar el botón de cancelar
+    const cancelButton = document.querySelector('[data-bs-target="#cancelarModal"]');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            // El modal se encargará de la confirmación
+        });
+    }
+    
+    // Manejar el botón de confirmar cancelación en el modal
+    const confirmCancelButton = document.querySelector('#cancelarModal .btn-danger');
+    if (confirmCancelButton) {
+        confirmCancelButton.addEventListener('click', function() {
+            window.location.href = "{{ url_for('pedidos_piezas.ver', id=pedido.id) }}";
+        });
+    }
+    
+    // Validar en tiempo real los cambios en la cantidad
+    if (cantidadEntregadaInput) {
+        cantidadEntregadaInput.addEventListener('input', handleCantidadInput);
+    }
+    
+    // Validar fecha (no permitir fechas futuras)
+    const fechaEntregaInput = document.getElementById('{{ form.fecha_entrega.id }}');
+    if (fechaEntregaInput) {
+        fechaEntregaInput.addEventListener('change', validarFechaEntrega);
+    }
+    
+    // Mostrar alerta de stock insuficiente si es necesario
+    if (stockDisponible < cantidadAprobada) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning d-flex align-items-center';
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-3" style="font-size: 1.5rem;"></i>
+            <div>
+                <strong>Atención:</strong> El stock disponible (${stockDisponible}) es menor que la cantidad aprobada (${cantidadAprobada}).
+                Por favor, actualiza el stock o ajusta la cantidad a entregar.
+            </div>
+        `;
+        
+        const cardBody = document.querySelector('.card-body');
+        if (cardBody) {
+            cardBody.insertBefore(alertDiv, cardBody.firstChild);
+        }
+    }
+</script>
+{% endblock %}

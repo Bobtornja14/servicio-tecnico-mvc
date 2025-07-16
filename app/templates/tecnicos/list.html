@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gestión de Técnicos</h2>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('tecnicos.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nuevo Técnico
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filtros de búsqueda -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search"
+                       placeholder="Buscar por nombre o email..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="especialidad" class="form-select">
+                    <option value="">Todas las especialidades</option>
+                    {% for esp in especialidades %}
+                    <option value="{{ esp }}" {{ 'selected' if esp == especialidad_actual else '' }}>
+                        {{ esp }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="{{ url_for('tecnicos.list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if tecnicos.items %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Especialidad</th>
+                        <th>Experiencia</th>
+                        <th>Usuario Asociado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tecnico in tecnicos.items %}
+                    <tr>
+                        <td>{{ tecnico.id }}</td>
+                        <td>{{ tecnico.nombre }}</td>
+                        <td>{{ tecnico.email or '-' }}</td>
+                        <td>{{ tecnico.telefono }}</td>
+                        <td>
+                            {% if tecnico.especialidad %}
+                            <span class="badge bg-info">{{ tecnico.especialidad }}</span>
+                            {% else %}
+                            <span class="text-muted">Sin especialidad</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if tecnico.nivel_experiencia == 'experto' else 'warning' if tecnico.nivel_experiencia == 'senior' else 'secondary' }}">
+                                {{ tecnico.nivel_experiencia.title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if tecnico.usuario %}
+                            <span class="badge bg-primary">{{ tecnico.usuario.nombre }}</span>
+                            {% else %}
+                            <span class="text-muted">Sin asociar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('tecnicos.detail', id=tecnico.id) }}"
+                                   class="btn btn-sm btn-outline-info" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+
+                                {% if current_user.is_admin() %}
+                                <a href="{{ url_for('tecnicos.edit', id=tecnico.id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <form method="POST" action="{{ url_for('tecnicos.delete', id=tecnico.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Eliminar"
+                                            onclick="return confirm('¿Está seguro de eliminar este técnico?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users-cog fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay técnicos registrados</h5>
+            {% if current_user.is_admin() %}
+            <a href="{{ url_for('tecnicos.create') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-plus me-2"></i>Registrar primer técnico
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

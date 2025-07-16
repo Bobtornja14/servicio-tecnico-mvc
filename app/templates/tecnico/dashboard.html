@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-user-cog me-2"></i>Panel del Técnico - {{ tecnico.nombre }}
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ asignaciones_pendientes }}</h4>
+                        <p class="mb-0">Asignaciones Pendientes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ asignaciones_proceso }}</h4>
+                        <p class="mb-0">En Proceso</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-cog fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ asignaciones_completadas }}</h4>
+                        <p class="mb-0">Completadas</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ pedidos_pendientes }}</h4>
+                        <p class="mb-0">Pedidos Pendientes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Mis Últimas Asignaciones</h5>
+            </div>
+            <div class="card-body">
+                {% if ultimas_asignaciones %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asignacion in ultimas_asignaciones %}
+                            <tr>
+                                <td>#{{ asignacion.id }}</td>
+                                <td>{{ asignacion.solicitud.cliente.nombre }}</td>
+                                <td>{{ asignacion.solicitud.servicio.nombre }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'warning' if asignacion.estado == 'asignada' else 'info' if asignacion.estado == 'en_proceso' else 'success' }}">
+                                        {{ asignacion.estado.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ asignacion.fecha_asignacion.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if asignacion.estado == 'asignada' %}
+                                    <form method="POST" action="{{ url_for('tecnico.iniciar_asignacion', id=asignacion.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-play"></i> Iniciar
+                                        </button>
+                                    </form>
+                                    {% elif asignacion.estado == 'en_proceso' %}
+                                    <a href="{{ url_for('tecnico.crear_reporte', asignacion_id=asignacion.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-alt"></i> Reporte
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay asignaciones registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('tecnico.mis_asignaciones') }}" class="btn btn-primary">
+                        <i class="fas fa-tasks me-2"></i>Ver Mis Asignaciones
+                    </a>
+                    <a href="{{ url_for('tecnico.solicitar_pieza') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Solicitar Pieza
+                    </a>
+                    <a href="{{ url_for('tecnico.ver_inventario') }}" class="btn btn-outline-info">
+                        <i class="fas fa-boxes me-2"></i>Ver Inventario
+                    </a>
+                    <a href="{{ url_for('tecnico.mis_pedidos') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-shopping-cart me-2"></i>Mis Pedidos
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Mi Información</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Especialidad:</strong> {{ tecnico.especialidad or 'No especificada' }}</p>
+                <p><strong>Experiencia:</strong> 
+                    <span class="badge bg-{{ 'success' if tecnico.nivel_experiencia == 'experto' else 'info' if tecnico.nivel_experiencia == 'senior' else 'warning' }}">
+                        {{ tecnico.nivel_experiencia.title() }}
+                    </span>
+                </p>
+                <p><strong>Email:</strong> {{ tecnico.email or 'No especificado' }}</p>
+                <p><strong>Teléfono:</strong> {{ tecnico.telefono }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

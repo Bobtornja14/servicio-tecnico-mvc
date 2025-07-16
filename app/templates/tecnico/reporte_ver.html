@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">Reporte de Trabajo #{{ reporte.id }}</h4>
+                    <small class="text-muted">
+                        Asignación #{{ reporte.asignacion.id }} - {{ reporte.asignacion.solicitud.cliente.nombre }}
+                    </small>
+                </div>
+                <div>
+                    {% if not reporte.completado %}
+                    <span class="badge bg-warning">Borrador</span>
+                    {% elif not reporte.aprobado_admin %}
+                    <span class="badge bg-info">Pendiente Aprobación</span>
+                    {% else %}
+                    <span class="badge bg-success">Aprobado</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Información general -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Información General</h6>
+                        <p><strong>Técnico:</strong> {{ reporte.tecnico.nombre }}</p>
+                        <p><strong>Fecha:</strong> {{ reporte.fecha_reporte.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <p><strong>Cliente:</strong> {{ reporte.asignacion.solicitud.cliente.nombre }}</p>
+                        <p><strong>Servicio:</strong> {{ reporte.asignacion.solicitud.servicio.nombre }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Tiempos de Trabajo</h6>
+                        {% if reporte.hora_inicio and reporte.hora_fin %}
+                        <p><strong>Hora Inicio:</strong> {{ reporte.hora_inicio.strftime('%H:%M') if reporte.hora_inicio else '-' }}</p>
+                        <p><strong>Hora Fin:</strong> {{ reporte.hora_fin.strftime('%H:%M') if reporte.hora_fin else '-' }}</p>
+                        <p><strong>Tiempo Total:</strong> {{ reporte.tiempo_total }} minutos</p>
+                        {% else %}
+                        <p class="text-muted">No se registraron tiempos específicos</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Estados del equipo -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Estado del Equipo</h6>
+                        <p><strong>Estado Inicial:</strong>
+                            <span class="badge bg-{{ 'danger' if reporte.estado_inicial == 'inoperativo' else 'warning' if reporte.estado_inicial == 'dañado' else 'success' }}">
+                                {{ reporte.estado_inicial.title() if reporte.estado_inicial else '-' }}
+                            </span>
+                        </p>
+                        <p><strong>Estado Final:</strong>
+                            <span class="badge bg-{{ 'danger' if reporte.estado_final == 'inoperativo' else 'warning' if reporte.estado_final == 'dañado' else 'success' }}">
+                                {{ reporte.estado_final.title() if reporte.estado_final else '-' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Satisfacción del Cliente</h6>
+                        <p><strong>Cliente Satisfecho:</strong>
+                            <span class="badge bg-{{ 'success' if reporte.cliente_satisfecho else 'danger' }}">
+                                {{ 'Sí' if reporte.cliente_satisfecho else 'No' }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Trabajo realizado -->
+                <div class="mb-4">
+                    <h6 class="text-muted">Trabajo Realizado</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.trabajo_realizado or 'No especificado' }}
+                    </div>
+                </div>
+
+                <!-- Problemas encontrados -->
+                {% if reporte.problemas_encontrados %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Problemas Encontrados</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.problemas_encontrados }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Solución aplicada -->
+                {% if reporte.solucion_aplicada %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Solución Aplicada</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.solucion_aplicada }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Recomendaciones -->
+                {% if reporte.recomendaciones %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Recomendaciones</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.recomendaciones }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Piezas utilizadas -->
+                {% if reporte.piezas_utilizadas %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Piezas Utilizadas</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.piezas_utilizadas }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Observaciones del cliente -->
+                {% if reporte.observaciones_cliente %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Observaciones del Cliente</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ reporte.observaciones_cliente }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Firma del cliente -->
+                {% if reporte.firma_cliente %}
+                <div class="mb-4">
+                    <h6 class="text-muted">Firma del Cliente</h6>
+                    <div class="border rounded p-3 text-center">
+                        {% if reporte.firma_cliente.startswith('data:image/') %}
+                            <!-- Si ya tiene el prefijo data:image/ -->
+                            <img src="{{ reporte.firma_cliente }}" alt="Firma del cliente" class="img-fluid" style="max-height: 200px;">
+                        {% else %}
+                            <!-- Si solo tiene los datos base64 -->
+                            <img src="data:image/png;base64,{{ reporte.firma_cliente }}" alt="Firma del cliente" class="img-fluid" style="max-height: 200px;">
+                        {% endif %}
+                        {% if reporte.nombre_firma %}
+                        <p class="mt-2 mb-0"><strong>{{ reporte.nombre_firma }}</strong></p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('tecnico.mis_asignaciones') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+
+                    <div>
+                        {% if current_user.is_tecnico() and not reporte.completado %}
+                        <a href="{{ url_for('tecnico.crear_reporte', asignacion_id=reporte.asignacion_id) }}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Editar
+                        </a>
+                        {% endif %}
+
+                        <button onclick="window.print()" class="btn btn-outline-primary">
+                            <i class="fas fa-print me-2"></i>Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header .badge {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

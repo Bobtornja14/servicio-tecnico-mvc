@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-user me-2"></i>Panel de Usuario - {{ current_user.nombre }}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Bienvenido al Sistema</h5>
+            </div>
+            <div class="card-body">
+                <p>Hola <strong>{{ current_user.nombre }}</strong>, bienvenido al Sistema de Servicio Técnico.</p>
+                <p>Su rol actual es: <span class="badge bg-info">{{ current_user.rol.title() }}</span></p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Información:</strong> Su cuenta tiene acceso limitado. 
+                    Para acceder a más funcionalidades, contacte al administrador.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Mi Información</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Nombre:</strong> {{ current_user.nombre }}</p>
+                <p><strong>Email:</strong> {{ current_user.email }}</p>
+                <p><strong>Teléfono:</strong> {{ current_user.telefono or 'No especificado' }}</p>
+                <p><strong>Rol:</strong> {{ current_user.rol.title() }}</p>
+                <p><strong>Estado:</strong> 
+                    <span class="badge bg-success">Activo</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

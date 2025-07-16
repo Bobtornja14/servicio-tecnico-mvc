@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Reportes de Servicio</h2>
+</div>
+
+<!-- Filtros de estado -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('reportes.list', estado='todos') }}" 
+               class="btn btn-outline-secondary {{ 'active' if estado_actual == 'todos' else '' }}">
+                <i class="fas fa-list me-1"></i>Todos
+            </a>
+            <a href="{{ url_for('reportes.list', estado='pendientes') }}" 
+               class="btn btn-outline-warning {{ 'active' if estado_actual == 'pendientes' else '' }}">
+                <i class="fas fa-clock me-1"></i>Pendientes
+            </a>
+            <a href="{{ url_for('reportes.list', estado='en_proceso') }}" 
+               class="btn btn-outline-info {{ 'active' if estado_actual == 'en_proceso' else '' }}">
+                <i class="fas fa-cog me-1"></i>En Proceso
+            </a>
+            <a href="{{ url_for('reportes.list', estado='completadas') }}" 
+               class="btn btn-outline-success {{ 'active' if estado_actual == 'completadas' else '' }}">
+                <i class="fas fa-check-circle me-1"></i>Completadas
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if asignaciones.items %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Técnico</th>
+                        <th>Estado</th>
+                        <th>Fecha Asignación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asignacion in asignaciones.items %}
+                    <tr>
+                        <td>#{{ asignacion.id }}</td>
+                        <td>{{ asignacion.solicitud.cliente.nombre }}</td>
+                        <td>{{ asignacion.solicitud.servicio.nombre }}</td>
+                        <td>{{ asignacion.tecnico.nombre }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'warning' if asignacion.estado == 'asignada' else 'info' if asignacion.estado == 'en_proceso' else 'success' }}">
+                                {{ asignacion.estado.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>{{ asignacion.fecha_asignacion.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('reportes.reporte', id=asignacion.id) }}" 
+                               class="btn btn-sm btn-outline-primary" title="Ver Reporte">
+                                <i class="fas fa-file-alt"></i> Reporte
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay reportes disponibles</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
